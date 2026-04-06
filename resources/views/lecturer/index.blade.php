@@ -177,9 +177,11 @@
                             classes: [], 
                             loadingClasses: false, 
                             selectedClass: '', 
+                            studentCodeToAdd: '',
                             students: [], 
                             loadingStudents: false,
                             saving: false,
+                            addingStudent: false,
                             async fetchClasses() {
                                 this.loadingClasses = true;
                                 try {
@@ -201,6 +203,45 @@
                                     this.students = await res.json();
                                 } catch(e) { console.error(e); }
                                 this.loadingStudents = false;
+                            },
+                            async addStudent() {
+                                if(!this.selectedClass || !this.studentCodeToAdd || this.addingStudent) return;
+                                this.addingStudent = true;
+                                try {
+                                    const res = await fetch('/giang-vien/api/add-student', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                        body: JSON.stringify({
+                                            course_id: this.selectedClass,
+                                            student_code: this.studentCodeToAdd
+                                        })
+                                    });
+                                    const data = await res.json();
+                                    if(res.ok) {
+                                        this.studentCodeToAdd = '';
+                                        this.fetchStudents();
+                                        alert(data.message);
+                                    } else {
+                                        alert(data.message || 'Lỗi thêm sinh viên!');
+                                    }
+                                } catch(e) { console.error(e); alert('Lỗi hệ thống!'); }
+                                this.addingStudent = false;
+                            },
+                            async removeStudent(studentId) {
+                                if(!confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi lớp? Toàn bộ điểm số của sinh viên này cũng sẽ bị xóa.')) return;
+                                try {
+                                    const res = await fetch('/giang-vien/api/remove-student', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                        body: JSON.stringify({
+                                            course_id: this.selectedClass,
+                                            student_id: studentId
+                                        })
+                                    });
+                                    const data = await res.json();
+                                    alert(data.message);
+                                    this.fetchStudents();
+                                } catch(e) { console.error(e); alert('Lỗi hệ thống!'); }
                             },
                             async saveGrades() {
                                 if(this.saving) return;
@@ -248,13 +289,24 @@
                                     <p class="text-indigo-600 text-sm mt-1">Chọn lớp để quản lý thành viên và nhập điểm trực tiếp.</p>
                                 </div>
                             </div>
-                            <div class="w-full md:w-auto">
+                            <div class="w-full md:w-auto flex flex-col sm:flex-row gap-2">
                                 <select x-model="selectedClass" @change="fetchStudents()" class="w-full border-indigo-300 rounded-lg text-sm text-indigo-800 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-bold md:max-w-xs shadow-sm pl-4 pr-10 py-2.5">
                                     <option value="" disabled>-- Chọn lớp học phần --</option>
                                     <template x-for="cls in classes" :key="cls.id">
                                         <option :value="cls.id" x-text="cls.subject_code + ' - ' + cls.subject_name"></option>
                                     </template>
                                 </select>
+                                
+                                <div class="flex gap-2" x-show="selectedClass">
+                                    <input type="text" x-model="studentCodeToAdd" placeholder="Nhập mã SV..." 
+                                           class="border-indigo-300 rounded-lg text-sm px-3 py-2 w-full sm:w-32 focus:ring-indigo-500 focus:border-indigo-500 font-medium"
+                                           @keyup.enter="addStudent()">
+                                    <button @click="addStudent()" :disabled="addingStudent" 
+                                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 whitespace-nowrap">
+                                        <span x-show="!addingStudent">Thêm SV</span>
+                                        <span x-show="addingStudent">...</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -280,6 +332,7 @@
                                             <th class="p-4 text-center w-28">60%</th>
                                             <th class="p-4 text-center">TB Hệ 10</th>
                                             <th class="p-4 text-center">TRẠNG THÁI</th>
+                                            <th class="p-4 text-center">THAO TÁC</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 text-sm">
@@ -301,13 +354,22 @@
                                                     <span class="font-black text-gray-900 bg-gray-100 px-4 py-2 rounded-lg" x-text="st.average_score"></span>
                                                 </td>
                                                 <td class="p-4 text-center">
-                                                    <span :class="st.status === 'Đạt' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase" x-text="st.status"></span>
+                                                    <span :class="{
+                                                         'bg-green-100 text-green-700': st.status === 'Đạt',
+                                                         'bg-red-100 text-red-700': st.status === 'Trượt',
+                                                         'bg-gray-100 text-gray-700': st.status === 'Chưa nhập điểm'
+                                                     }" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase" x-text="st.status"></span>
                                                 </td>
+                                                <td class="p-4 text-center">
+                                                     <button @click="removeStudent(st.student_id)" class="text-red-500 hover:text-red-700 transition p-2 rounded-lg hover:bg-red-50" title="Xóa khỏi lớp">
+                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                     </button>
+                                                 </td>
                                             </tr>
                                         </template>
                                         <template x-if="students.length === 0 && !loadingStudents">
                                             <tr>
-                                                <td colspan="8" class="p-24 text-center text-gray-400 font-medium italic italic">Vui lòng chọn lớp học phần ở thanh chọn phía trên.</td>
+                                                <td colspan="9" class="p-24 text-center text-gray-400 font-medium italic italic">Vui lòng chọn lớp học phần ở thanh chọn phía trên.</td>
                                             </tr>
                                         </template>
                                     </tbody>

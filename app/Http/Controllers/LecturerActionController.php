@@ -85,6 +85,15 @@ class LecturerActionController extends Controller
                 ->where('course_module_id', $courseId)
                 ->first();
 
+            $statusText = 'Chưa nhập điểm';
+            if ($grade) {
+                if ($grade->attendance_score == 0 && $grade->midterm_score == 0 && $grade->final_score == 0) {
+                    $statusText = 'Chưa nhập điểm';
+                } else {
+                    $statusText = ($grade->status == 'pass' ? 'Đạt' : 'Trượt');
+                }
+            }
+
             $studentsData[] = [
                 'student_id' => $student->id,
                 'student_code' => $student->student_code,
@@ -94,7 +103,7 @@ class LecturerActionController extends Controller
                 'midterm_score' => $grade ? $grade->midterm_score : 0,
                 'final_score' => $grade ? $grade->final_score : 0,
                 'average_score' => $grade ? $grade->average_score : 0,
-                'status' => $grade ? ($grade->status == 'pass' ? 'Đạt' : 'Trượt') : 'Chưa nhập'
+                'status' => $statusText
             ];
         }
 
@@ -153,6 +162,118 @@ class LecturerActionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Lỗi lưu điểm: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // Thêm sinh viên vào lớp học phần bằng mã sinh viên
+    public function addStudentToClass(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('giang_vien') && !$user->hasRole('admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'course_id' => 'required|exists:course_modules,id',
+            'student_code' => 'required|string|exists:students,student_code',
+        ]);
+
+        $courseId = $request->input('course_id');
+        $studentCode = $request->input('student_code');
+
+        // Verify module ownership
+        $module = CourseModule::find($courseId);
+        $lecturer = $user->lecturer;
+
+        if (!$module) return response()->json(['message' => 'Lớp học phần không tồn tại.'], 404);
+        if ($lecturer && $module->lecturer_id !== $lecturer->id) {
+            return response()->json(['message' => 'Bạn không có quyền thêm sinh viên vào lớp này.'], 403);
+        }
+
+        // Find student
+        $student = Student::where('student_code', $studentCode)->first();
+        if (!$student) return response()->json(['message' => 'Sinh viên không tồn tại.'], 404);
+
+        // Check if student is already in the class
+        $exists = CourseRegistration::where('student_id', $student->user_id)
+            ->where('course_module_id', $courseId)
+            ->exists();
+        if ($exists) {
+            return response()->json(['message' => 'Sinh viên này đã đăng ký học tại lớp này.'], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 1. Create CourseRegistration (student_id links to user_id)
+            $registration = CourseRegistration::create([
+                'student_id' => $student->user_id,
+                'course_module_id' => $courseId,
+                'registration_date' => now()
+            ]);
+
+            // 2. Create or get Grade (student_id links to students.id)
+            $grade = Grade::firstOrCreate([
+                'student_id' => $student->id,
+                'course_module_id' => $courseId
+            ], [
+                'attendance_score' => 0,
+                'midterm_score' => 0,
+                'final_score' => 0,
+                'average_score' => 0,
+                'status' => 'pending'
+            ]);
+
+            DB::commit();
+            return response()->json(['message' => 'Thêm sinh viên ' . $student->full_name . ' thành công!']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Lỗi: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // Xóa sinh viên khỏi lớp
+    public function removeStudentFromClass(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('giang_vien') && !$user->hasRole('admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'course_id' => 'required|exists:course_modules,id',
+            'student_id' => 'required|exists:students,id',
+        ]);
+
+        $courseId = $request->input('course_id');
+        $studentId = $request->input('student_id');
+
+        // Verify ownership
+        $module = CourseModule::find($courseId);
+        $lecturer = $user->lecturer;
+
+        if ($lecturer && $module->lecturer_id !== $lecturer->id) {
+            return response()->json(['message' => 'Bạn không có quyền xóa sinh viên lớp này.'], 403);
+        }
+
+        $student = Student::find($studentId);
+
+        DB::beginTransaction();
+        try {
+            // 1. Xóa Bảng điểm
+            Grade::where('student_id', $studentId)
+                ->where('course_module_id', $courseId)
+                ->delete();
+
+            // 2. Xóa Đăng ký (student_id trong table CourseRegistration là user_id)
+            CourseRegistration::where('student_id', $student->user_id)
+                ->where('course_module_id', $courseId)
+                ->delete();
+
+            DB::commit();
+            return response()->json(['message' => 'Đã xóa sinh viên khỏi lớp thành công.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Lỗi xóa sinh viên: ' . $e->getMessage()], 500);
         }
     }
 }

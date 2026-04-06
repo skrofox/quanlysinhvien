@@ -26,6 +26,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/giang-vien/api/classes', [\App\Http\Controllers\LecturerActionController::class, 'getAssignedClasses']);
     Route::get('/giang-vien/api/class-students/{courseId}', [\App\Http\Controllers\LecturerActionController::class, 'getClassStudents']);
     Route::post('/giang-vien/api/save-grades', [\App\Http\Controllers\LecturerActionController::class, 'saveGrades']);
+    Route::post('/giang-vien/api/add-student', [\App\Http\Controllers\LecturerActionController::class, 'addStudentToClass']);
+    Route::post('/giang-vien/api/remove-student', [\App\Http\Controllers\LecturerActionController::class, 'removeStudentFromClass']);
 
     // API Đổi mật khẩu chung
     Route::post('/api/change-password', [\App\Http\Controllers\HomeController::class, 'changePassword']);
