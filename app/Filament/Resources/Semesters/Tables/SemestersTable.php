@@ -16,9 +16,10 @@ class SemestersTable
             ->columns([
                 TextColumn::make('semester_name')
                     ->searchable(),
-                TextColumn::make('academicYear.start_year')
-                    ->formatStateUsing(fn($record) => $record->academicYear?->range)
-                    ->sortable(),
+                TextColumn::make('schoolYear.range')
+                    ->label('Năm học')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

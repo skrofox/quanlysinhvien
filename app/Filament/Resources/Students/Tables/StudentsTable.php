@@ -35,6 +35,9 @@ class StudentsTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('CCCD')
+                ->label("CCCD/CMND")
+                    ->searchable(),
             ])
             ->filters([
                 //

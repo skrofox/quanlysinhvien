@@ -24,6 +24,12 @@ class LecturerForm
                 TextInput::make('phone')
                     ->tel(),
                 TextInput::make('address'),
+                Select::make('department_id')
+                    ->label('Khoa')
+                    ->relationship('department', 'department_name')
+                    ->preload()
+                    ->searchable()
+                    ->required(),
                 Select::make('user_id')
                     ->relationship(
                         name: 'user',

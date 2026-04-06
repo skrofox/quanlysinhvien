@@ -20,7 +20,12 @@ class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Sinh viên';
+    protected static ?string $pluralModelLabel = 'Sinh viên';
+    protected static string|\UnitEnum|null $navigationGroup = 'Nhân sự';
+    protected static ?int $navigationSort = 2;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;
 
     public static function form(Schema $schema): Schema
     {

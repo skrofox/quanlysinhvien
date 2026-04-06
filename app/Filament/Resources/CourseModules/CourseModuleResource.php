@@ -20,7 +20,12 @@ class CourseModuleResource extends Resource
 {
     protected static ?string $model = CourseModule::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Lớp học phần';
+    protected static ?string $pluralModelLabel = 'Lớp học phần';
+    protected static string|\UnitEnum|null $navigationGroup = 'Đào tạo';
+    protected static ?int $navigationSort = 1;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
 
     public static function form(Schema $schema): Schema
     {

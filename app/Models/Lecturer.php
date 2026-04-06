@@ -14,11 +14,17 @@ class Lecturer extends Model
         "phone",
         "address",
         "user_id",
+        "department_id",
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function courseModules()

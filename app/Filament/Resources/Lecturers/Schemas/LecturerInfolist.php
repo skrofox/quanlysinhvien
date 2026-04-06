@@ -23,8 +23,17 @@ class LecturerInfolist
                     ->placeholder('-'),
                 TextEntry::make('address')
                     ->placeholder('-'),
-                TextEntry::make('user_id')
-                    ->numeric()
+                TextEntry::make('department.department_name')
+                    ->label('Khoa')
+                    ->placeholder('-'),
+                TextEntry::make('user.email')
+                    ->label('Email')
+                    ->placeholder('-'),
+                TextEntry::make('user.name')
+                    ->label('Tên tài khoản')
+                    ->placeholder('-'),
+                TextEntry::make('user.roles.name')
+                    ->label('Vai trò')
                     ->placeholder('-'),
                 TextEntry::make('created_at')
                     ->dateTime()

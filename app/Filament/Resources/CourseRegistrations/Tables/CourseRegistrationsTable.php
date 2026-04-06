@@ -15,16 +15,22 @@ class CourseRegistrationsTable
     {
         return $table
             ->columns([
-                TextColumn::make('student_id')
-                    ->sortable(),
+                TextColumn::make('student.student.student_code')
+                    ->label("Mã SV")
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('student.name')
-                    ->label("student Name")
-                    ->sortable(),
-                TextColumn::make('course_module_id')
-                    ->numeric()
-                    ->sortable(),
+                    ->label("Họ tên")
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('courseModule.subject.subject_name')
+                    ->label('Môn học')
+                    ->formatStateUsing(fn ($record) => "{$record->courseModule->subject->subject_name} ({$record->courseModule->semester->semester_name} {$record->courseModule->semester->schoolYear?->range})")
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('registration_date')
-                    ->dateTime()
+                    ->label('Ngày đăng ký')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()

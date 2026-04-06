@@ -8,12 +8,12 @@ class Semester extends Model
 {
     protected $fillable = [
         "semester_name",
-        "academic_year_id",
+        "school_year_id",
     ];
 
-    public function academicYear()
+    public function schoolYear()
     {
-        return $this->belongsTo(AcademicYear::class);
+        return $this->belongsTo(SchoolYear::class);
     }
 
     public function courseModules()

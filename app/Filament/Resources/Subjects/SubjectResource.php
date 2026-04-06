@@ -18,7 +18,12 @@ class SubjectResource extends Resource
 {
     protected static ?string $model = Subject::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Môn học';
+    protected static ?string $pluralModelLabel = 'Môn học';
+    protected static string|\UnitEnum|null $navigationGroup = 'Quản lý Danh mục';
+    protected static ?int $navigationSort = 3;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
     public static function form(Schema $schema): Schema
     {

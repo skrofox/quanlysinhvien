@@ -17,9 +17,4 @@ class AcademicYear extends Model
     {
         return "{$this->start_year} - {$this->end_year}";
     }
-
-    public function semesters()
-    {
-        return $this->hasMany(Semester::class);
-    }
 }

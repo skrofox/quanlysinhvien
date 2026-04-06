@@ -26,11 +26,9 @@ class LecturersTable
                     ->badge(),
                 TextColumn::make('phone')
                     ->searchable(),
-                TextColumn::make('address')
+                TextColumn::make('department.department_name')
+                    ->label('Khoa')
                     ->searchable(),
-                TextColumn::make('user_id')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

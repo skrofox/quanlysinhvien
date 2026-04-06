@@ -16,12 +16,21 @@ class CourseModulesTable
         return $table
             ->columns([
                 TextColumn::make('subject.subject_name')
-                    ->sortable(),
+                    ->label('Tên môn học')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('semester.semester_name')
+                    ->label('Học kỳ')
                     ->sortable(),
-                TextColumn::make('lecturer.name')
+                TextColumn::make('semester.schoolYear.range')
+                    ->label('Năm học')
                     ->sortable(),
+                TextColumn::make('lecturer.full_name')
+                    ->label('Giảng viên')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('number_of_students')
+                    ->label('Số lượng sinh viên')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('created_at')

@@ -14,6 +14,7 @@ class CourseRegistrationForm
         return $schema
             ->components([
                 Select::make('student_id')
+                    ->label('Sinh viên')
                     ->relationship(
                         name: 'student',
                         titleAttribute: 'name',
@@ -22,15 +23,21 @@ class CourseRegistrationForm
                     )
                     ->getOptionLabelFromRecordUsing(
                         fn($record) =>
-                        $record->student?->student_code . ' - ' . $record->name
+                        ($record->student?->student_code ?? 'N/A') . ' - ' . $record->name
                     )
                     ->required()
                     ->searchable()
                     ->preload(),
-                TextInput::make('course_module_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('course_module_id')
+                    ->label('Lớp học phần')
+                    ->relationship('courseModule', 'id')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->subject->subject_name} ({$record->semester->semester_name} {$record->semester->schoolYear?->range}) - {$record->lecturer->full_name}")
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 DateTimePicker::make('registration_date')
+                    ->label('Ngày đăng ký')
+                    ->default(now())
                     ->required(),
             ]);
     }

@@ -27,6 +27,20 @@ class StudentForm
                     ->required()
                     ->searchable()
                     ->preload(),
+                Select::make('user_id')
+                ->label('Mã sinh viên')
+                    ->relationship(
+                        name: 'user',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn($query) =>
+                        $query->role('sinh_vien')
+                    )
+                    ->getOptionLabelFromRecordUsing(fn($record) =>
+                        'ID: ' . $record->id . ' - ' . $record->name)
+                    ->required(),
+                TextInput::make('CCCD')
+                ->label("CCCD/CMND")
+                    ->required(),
             ]);
     }
 }

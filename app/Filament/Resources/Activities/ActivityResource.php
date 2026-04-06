@@ -20,7 +20,12 @@ class ActivityResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Hoạt động';
+    protected static ?string $pluralModelLabel = 'Nhật ký hoạt động';
+    protected static string|\UnitEnum|null $navigationGroup = 'Hệ thống';
+    protected static ?int $navigationSort = 3;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 
     public static function form(Schema $schema): Schema
     {

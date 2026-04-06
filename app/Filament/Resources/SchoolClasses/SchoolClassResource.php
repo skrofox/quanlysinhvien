@@ -21,7 +21,12 @@ class SchoolClassResource extends Resource
 {
     protected static ?string $model = SchoolClass::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Lớp hành chính';
+    protected static ?string $pluralModelLabel = 'Lớp hành chính';
+    protected static string|\UnitEnum|null $navigationGroup = 'Quản lý Danh mục';
+    protected static ?int $navigationSort = 2;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
     public static function form(Schema $schema): Schema
     {

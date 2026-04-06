@@ -18,7 +18,12 @@ class SemesterResource extends Resource
 {
     protected static ?string $model = Semester::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Học kỳ';
+    protected static ?string $pluralModelLabel = 'Học kỳ';
+    protected static string|\UnitEnum|null $navigationGroup = 'Quản lý Danh mục';
+    protected static ?int $navigationSort = 6;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookmark;
 
     public static function form(Schema $schema): Schema
     {

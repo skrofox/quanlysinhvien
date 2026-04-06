@@ -20,7 +20,12 @@ class LecturerResource extends Resource
 {
     protected static ?string $model = Lecturer::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Giảng viên';
+    protected static ?string $pluralModelLabel = 'Giảng viên';
+    protected static string|\UnitEnum|null $navigationGroup = 'Nhân sự';
+    protected static ?int $navigationSort = 1;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     public static function form(Schema $schema): Schema
     {

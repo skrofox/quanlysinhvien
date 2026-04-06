@@ -33,4 +33,14 @@ class CourseModule extends Model
     {
         return $this->hasMany(CourseRegistration::class);
     }
+
+    public function grades()
+    {
+        return $this->hasMany(Grade::class);
+    }
+    public function students()
+    {
+        return $this->belongsToMany(Student::class, 'grades')
+                    ->withPivot('total_score');
+    }
 }

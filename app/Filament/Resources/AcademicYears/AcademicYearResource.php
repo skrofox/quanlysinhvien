@@ -19,7 +19,12 @@ class AcademicYearResource extends Resource
 {
     protected static ?string $model = AcademicYear::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Khóa học';
+    protected static ?string $pluralModelLabel = 'Khóa học (Niên khóa)';
+    protected static string|\UnitEnum|null $navigationGroup = 'Quản lý Danh mục';
+    protected static ?int $navigationSort = 4;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
     public static function form(Schema $schema): Schema
     {
