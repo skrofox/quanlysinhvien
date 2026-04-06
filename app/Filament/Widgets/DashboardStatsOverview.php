@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\AcademicYear;
+use App\Models\AcademicBatch;
 use App\Models\CourseModule;
 use App\Models\Department;
 use App\Models\Lecturer;
@@ -10,7 +10,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Subject;
 
-use App\Filament\Resources\AcademicYears\AcademicYearResource;
+use App\Filament\Resources\AcademicBatches\AcademicBatchResource;
 use App\Filament\Resources\CourseModules\CourseModuleResource;
 use App\Filament\Resources\Departments\DepartmentResource;
 use App\Filament\Resources\Lecturers\LecturerResource;
@@ -48,10 +48,10 @@ class DashboardStatsOverview extends BaseWidget
                 ->color('info')
                 ->url(SubjectResource::getUrl('index')),
 
-            Stat::make('Khóa học', AcademicYear::count())
+            Stat::make('Khóa học', AcademicBatch::count())
                 ->icon('heroicon-o-calendar')
                 ->color('info')
-                ->url(AcademicYearResource::getUrl('index')),
+                ->url(AcademicBatchResource::getUrl('index')),
 
             Stat::make('Tổng giảng viên', Lecturer::count())
                 ->icon('heroicon-o-users')

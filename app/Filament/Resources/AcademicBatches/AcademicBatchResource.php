@@ -1,23 +1,22 @@
 <?php
 
-namespace App\Filament\Resources\AcademicYears;
+namespace App\Filament\Resources\AcademicBatches;
 
-use App\Filament\Resources\AcademicYears\Pages\CreateAcademicYear;
-use App\Filament\Resources\AcademicYears\Pages\EditAcademicYear;
-use App\Filament\Resources\AcademicYears\Pages\ListAcademicYears;
-use App\Filament\Resources\AcademicYears\Schemas\AcademicYearForm;
-use App\Filament\Resources\AcademicYears\Tables\AcademicYearsTable;
-use App\Models\AcademicYear;
+use App\Filament\Resources\AcademicBatches\Pages\CreateAcademicBatch;
+use App\Filament\Resources\AcademicBatches\Pages\EditAcademicBatch;
+use App\Filament\Resources\AcademicBatches\Pages\ListAcademicBatches;
+use App\Filament\Resources\AcademicBatches\Schemas\AcademicBatchForm;
+use App\Filament\Resources\AcademicBatches\Tables\AcademicBatchesTable;
+use App\Models\AcademicBatch;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use Illuminate\Contracts\Support\Htmlable;
 
-class AcademicYearResource extends Resource
+class AcademicBatchResource extends Resource
 {
-    protected static ?string $model = AcademicYear::class;
+    protected static ?string $model = AcademicBatch::class;
 
     protected static ?string $modelLabel = 'Khóa học';
     protected static ?string $pluralModelLabel = 'Khóa học (Niên khóa)';
@@ -28,12 +27,12 @@ class AcademicYearResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return AcademicYearForm::configure($schema);
+        return AcademicBatchForm::configure($schema);
     }
 
     public static function table(Table $table): Table
     {
-        return AcademicYearsTable::configure($table);
+        return AcademicBatchesTable::configure($table);
     }
 
     public static function getRelations(): array
@@ -46,9 +45,9 @@ class AcademicYearResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListAcademicYears::route('/'),
-            'create' => CreateAcademicYear::route('/create'),
-            'edit' => EditAcademicYear::route('/{record}/edit'),
+            'index' => ListAcademicBatches::route('/'),
+            'create' => CreateAcademicBatch::route('/create'),
+            'edit' => EditAcademicBatch::route('/{record}/edit'),
         ];
     }
 }

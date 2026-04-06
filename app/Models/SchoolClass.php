@@ -11,7 +11,7 @@ class SchoolClass extends Model
         'class_code',
         'class_name',
         'department_id',
-        'academic_year_id',
+        'academic_batch_id',
     ];
 
     public function department()
@@ -24,8 +24,8 @@ class SchoolClass extends Model
         return $this->hasMany(Student::class);
     }
 
-    public function academic_year()
+    public function academicBatch()
     {
-        return $this->belongsTo(AcademicYear::class);
+        return $this->belongsTo(AcademicBatch::class, 'academic_batch_id');
     }
 }

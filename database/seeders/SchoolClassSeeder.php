@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\AcademicYear;
+use App\Models\AcademicBatch;
 use App\Models\Department;
 use App\Models\SchoolClass;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -17,7 +17,7 @@ class SchoolClassSeeder extends Seeder
     {
         $departments = Department::pluck('id', 'department_code')->toArray();
 
-        $academicYears = AcademicYear::pluck('id', 'start_year')->toArray();
+        $academicBatches = AcademicBatch::pluck('id', 'start_year')->toArray();
 
         $classes = [
             ["code" => "CNTT1-23", "dept" => "THNN", "year" => 2023],
@@ -47,15 +47,15 @@ class SchoolClassSeeder extends Seeder
             if (!isset($departments[$class['dept']])) {
                 throw new \Exception("Department code {$class['dept']} chưa tồn tại");
             }
-            if (!isset($academicYears[$class['year']])) {
-                throw new \Exception("Academic year {$class['year']} chưa tồn tại");
+            if (!isset($academicBatches[$class['year']])) {
+                throw new \Exception("Academic batch {$class['year']} chưa tồn tại");
             }
 
             $data[] = [
                 'class_code'     => $class['code'],
                 'class_name'     => 'Unknown',
                 'department_id'  => $departments[$class['dept']],
-                'academic_year_id' => $academicYears[$class['year']],
+                'academic_batch_id' => $academicBatches[$class['year']],
                 'created_at'     => now(),
                 'updated_at'     => now(),
             ];

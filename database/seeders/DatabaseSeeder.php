@@ -8,7 +8,7 @@ use App\Models\Lecturer;
 use App\Models\Department;
 use App\Models\SchoolClass;
 use App\Models\SchoolYear;
-use App\Models\AcademicYear;
+use App\Models\AcademicBatch;
 use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\CourseModule;
@@ -65,10 +65,10 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        echo "4. Đang khởi tạo Khóa, Năm học, Học kỳ...\n";
-        // 4. Years & Semesters
-        $schoolYear = SchoolYear::firstOrCreate(['start_year' => '2022'], ['end_year' => '2026']);
-        $academicYear = AcademicYear::firstOrCreate(['start_year' => '2025'], ['end_year' => '2026']);
+        echo "4. Đang khởi tạo Khóa học và Năm học...\n";
+        // 4. AcademicBatch (Khóa học - 4 năm) & SchoolYear (Năm học - 1 năm)
+        $academicBatch = AcademicBatch::firstOrCreate(['start_year' => '2022'], ['end_year' => '2026']);
+        $schoolYear = SchoolYear::firstOrCreate(['start_year' => '2025'], ['end_year' => '2026']);
         
         $semester1 = Semester::firstOrCreate(['semester_name' => 'Học kỳ 1'], ['school_year_id' => $schoolYear->id]);
         $semester2 = Semester::firstOrCreate(['semester_name' => 'Học kỳ 2'], ['school_year_id' => $schoolYear->id]);
@@ -86,7 +86,7 @@ class DatabaseSeeder extends Seeder
                     [
                         'class_name' => 'Lớp ' . $dept->department_code . ' ' . $i,
                         'department_id' => $dept->id,
-                        'academic_year_id' => $academicYear->id,
+                        'academic_batch_id' => $academicBatch->id,
                     ]
                 );
             }
@@ -155,7 +155,7 @@ class DatabaseSeeder extends Seeder
             $createdStudents[] = Student::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'student_code' => 'SV' . $schoolYear->start_year . str_pad($i, 4, '0', STR_PAD_LEFT),
+                    'student_code' => 'SV' . $academicBatch->start_year . str_pad($i, 4, '0', STR_PAD_LEFT),
                     'full_name' => $user->name,
                     'birthday' => $faker->date('Y-m-d', '2004-01-01'),
                     'gender' => $faker->randomElement(['Nam', 'Nữ']),
