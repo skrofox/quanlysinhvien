@@ -70,8 +70,8 @@
                                 <svg class="w-5 h-5 flex-shrink-0"
                                     :class="{ 'text-blue-600': activeTab === 'profile', 'text-gray-400': activeTab !== 'profile' }"
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Thông tin cá nhân
                             </a>
@@ -190,25 +190,13 @@
                                     <div class="p-5 flex items-start gap-4 hover:bg-blue-50/30 transition-colors">
                                         <div
                                             class="w-16 h-16 bg-blue-100 rounded-xl flex flex-col items-center justify-center flex-shrink-0 text-blue-700">
-                                            <span class="text-xs font-bold uppercase">Ca 1</span>
-                                            <span class="font-bold">07:00</span>
+                                            <span class="text-xs font-bold uppercase">Sáng</span>
+                                            <span class="font-bold">00:00</span>
                                         </div>
                                         <div>
-                                            <h5 class="font-bold text-gray-800 text-lg">Cấu trúc dữ liệu và Giải thuật</h5>
-                                            <p class="text-gray-500 text-sm mt-1">Phòng: <strong>A3-102</strong> | GV:
-                                                Nguyễn Văn A</p>
-                                        </div>
-                                    </div>
-                                    <div class="p-5 flex items-start gap-4 hover:bg-blue-50/30 transition-colors">
-                                        <div
-                                            class="w-16 h-16 bg-purple-100 rounded-xl flex flex-col items-center justify-center flex-shrink-0 text-purple-700">
-                                            <span class="text-xs font-bold uppercase">Ca 3</span>
-                                            <span class="font-bold">13:00</span>
-                                        </div>
-                                        <div>
-                                            <h5 class="font-bold text-gray-800 text-lg">Mạng máy tính (Thực hành)</h5>
-                                            <p class="text-gray-500 text-sm mt-1">Phòng: <strong>Lab 4</strong> | GV: Trần
-                                                Thị B</p>
+                                            <h5 class="font-bold text-gray-800 text-lg">Chức năng đang được phát triển</h5>
+                                            <p class="text-gray-500 text-sm mt-1">Phòng: <strong>Null</strong> | GV: Null
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -226,17 +214,33 @@
                                 <div>
                                     <h4 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Thông tin Sinh viên</h4>
                                     <div class="space-y-3">
-                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Họ và tên:</span> <span class="font-bold">{{ $user->student->full_name ?? 'N/A' }}</span></p>
-                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Mã SV:</span> <span class="font-bold">{{ $user->student->student_code ?? 'N/A' }}</span></p>
-                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Email:</span> <span>{{ $user->email ?? 'N/A' }}</span></p>
-                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Khoa:</span> <span>{{ $user->student->schoolClass->department->department_name ?? 'N/A' }}</span></p>
-                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Lớp:</span> <span>{{ $user->student->schoolClass->class_name ?? 'N/A' }}</span></p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Họ và tên:</span>
+                                            <span class="font-bold">{{ $user->student->full_name ?? 'N/A' }}</span>
+                                        </p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Mã SV:</span> <span
+                                                class="font-bold">{{ $user->student->student_code ?? 'N/A' }}</span></p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Email:</span>
+                                            <span>{{ $user->email ?? 'N/A' }}</span>
+                                        </p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Khoa:</span>
+                                            <span>{{ $user->student->schoolClass->department->department_name ?? 'N/A' }}</span>
+                                        </p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Lớp:</span>
+                                            <span>{{ $user->student->schoolClass->class_name ?? 'N/A' }}</span>
+                                        </p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Khóa học:</span> <span
+                                                class="text-blue-600 font-bold">Khóa
+                                                {{ $user->student->schoolClass->academicBatch->start_year ?? 'N/A' }}</span>
+                                        </p>
+                                        <p><span class="font-medium text-gray-500 w-32 inline-block">Niên khóa:</span>
+                                            <span>{{ $user->student->schoolClass->academicBatch->range ?? 'N/A' }}</span>
+                                        </p>
                                     </div>
                                 </div>
-                                <div x-data="{ 
-                                    currentPassword: '', 
-                                    newPassword: '', 
-                                    confirmPassword: '', 
+                                <div x-data="{
+                                    currentPassword: '',
+                                    newPassword: '',
+                                    confirmPassword: '',
                                     message: '',
                                     success: false,
                                     async submitPassword() {
@@ -272,19 +276,32 @@
                                     <h4 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Đổi mật khẩu</h4>
                                     <form @submit.prevent="submitPassword()" class="space-y-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu hiện tại</label>
-                                            <input type="password" x-model="currentPassword" class="w-full border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu hiện
+                                                tại</label>
+                                            <input type="password" x-model="currentPassword"
+                                                class="w-full border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
+                                                required>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
-                                            <input type="password" x-model="newPassword" class="w-full border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu
+                                                mới</label>
+                                            <input type="password" x-model="newPassword"
+                                                class="w-full border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
+                                                required>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
-                                            <input type="password" x-model="confirmPassword" class="w-full border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu
+                                                mới</label>
+                                            <input type="password" x-model="confirmPassword"
+                                                class="w-full border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
+                                                required>
                                         </div>
-                                        <div x-show="message" class="text-sm font-bold" :class="success ? 'text-green-600' : 'text-red-600'" x-text="message" x-transition></div>
-                                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm w-full md:w-auto">Cập nhật mật khẩu</button>
+                                        <div x-show="message" class="text-sm font-bold"
+                                            :class="success ? 'text-green-600' : 'text-red-600'" x-text="message"
+                                            x-transition></div>
+                                        <button type="submit"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm w-full md:w-auto">Cập
+                                            nhật mật khẩu</button>
                                     </form>
                                 </div>
                             </div>
@@ -561,35 +578,158 @@
                     <div x-show="activeTab === 'schedule'" style="display: none;"
                         class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[400px]">
                         <div class="p-6 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                            <h3 class="text-xl font-bold text-gray-800">Lịch Học Tuần 12 (06/04 - 12/04)</h3>
-                            <div class="flex gap-2">
-                                <button class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"><svg
-                                        class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M15 19l-7-7 7-7"></path>
-                                    </svg></button>
-                                <button
-                                    class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50">Tuần
-                                    hiện tại</button>
-                                <button class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"><svg
-                                        class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7"></path>
-                                    </svg></button>
+                            <h3 class="text-xl font-bold text-gray-800">Lịch học dành cho bạn</h3>
+                            <div class="flex items-center gap-2 text-sm text-gray-500">
+                                <span class="bg-blue-600 w-2 h-2 rounded-full"></span>
+                                <span>Khóa {{ $user->student->schoolClass->academicBatch->start_year ?? 'N/A' }}</span>
                             </div>
                         </div>
-                        <div class="p-8 text-center text-gray-500">
-                            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                </path>
-                            </svg>
-                            <p class="text-lg font-medium text-gray-600">Chức năng Lịch (Calendar) đang được xây dựng.</p>
-                            <p class="text-sm mt-2">Sắp tới bạn có thể kết nối lịch học thẳng vào điện thoại qua Google
-                                Calendar.</p>
+
+                        <div class="divide-y divide-gray-100 mb-8">
+                            @forelse($schedules as $schedule)
+                                @php
+                                    $isNew = $schedule->created_at->diffInDays(now()) < 7;
+                                @endphp
+                                <div class="p-6 hover:bg-gray-50/80 transition-colors group">
+                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-1">
+                                                <h4
+                                                    class="text-lg font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
+                                                    {{ $schedule->title }}
+                                                </h4>
+                                                @if ($isNew)
+                                                    <span
+                                                        class="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Mới</span>
+                                                @endif
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+                                                <div class="flex items-center gap-1.5">
+                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                        </path>
+                                                    </svg>
+                                                    <span>{{ $schedule->semester->semester_name ?? 'N/A' }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span>Ngày đăng: {{ $schedule->created_at->format('d/m/Y') }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-wrap gap-3">
+                                            @if ($schedule->file_path)
+                                                <a href="{{ asset('storage/' . $schedule->file_path) }}" target="_blank"
+                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
+                                                    <svg class="w-4 h-4 text-blue-600" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4">
+                                                        </path>
+                                                    </svg>
+                                                    Tải tệp
+                                                </a>
+                                            @endif
+
+                                            @if ($schedule->drive_link)
+                                                <a href="{{ $schedule->drive_link }}" target="_blank"
+                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                                                        </path>
+                                                    </svg>
+                                                    Drive
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="p-12 text-center text-gray-400">Chưa có lịch dành riêng cho bạn.</div>
+                            @endforelse
+                        </div>
+
+                        <!-- Section: #Khác -->
+                        <div class="p-6 border-b border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-500">#Khác</h3>
+                            <span class="text-xs text-gray-400 font-medium uppercase tracking-widest">Lịch học các khóa
+                                khác</span>
+                        </div>
+
+                        <div class="divide-y divide-gray-100 bg-gray-50/30">
+                            @forelse($otherSchedules as $schedule)
+                                @php
+                                    $isNew = $schedule->created_at->diffInDays(now()) < 7;
+                                @endphp
+                                <div class="p-5 hover:bg-white transition-colors group">
+                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-1">
+                                                <h4
+                                                    class="text-base font-bold text-gray-600 group-hover:text-gray-900 transition-colors">
+                                                    {{ $schedule->title }}
+                                                </h4>
+                                                <span
+                                                    class="bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
+                                                    Khóa {{ $schedule->academicBatch->start_year ?? 'N/A' }}
+                                                </span>
+                                                @if ($isNew)
+                                                    <span
+                                                        class="bg-orange-100 text-orange-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase">Mới</span>
+                                                @endif
+                                            </div>
+                                            <div class="flex items-center gap-4 text-xs text-gray-400">
+                                                <span>{{ $schedule->semester->semester_name ?? 'N/A' }}</span>
+                                                <span>•</span>
+                                                <span>{{ $schedule->created_at->format('d/m/Y') }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-2">
+                                            @if ($schedule->file_path)
+                                                <a href="{{ asset('storage/' . $schedule->file_path) }}" target="_blank"
+                                                    class="p-2 bg-white border border-gray-200 rounded-lg hover:border-blue-400 transition-colors">
+                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4">
+                                                        </path>
+                                                    </svg>
+                                                </a>
+                                            @endif
+                                            @if ($schedule->drive_link)
+                                                <a href="{{ $schedule->drive_link }}" target="_blank"
+                                                    class="p-2 bg-white border border-gray-200 rounded-lg hover:border-blue-400 transition-colors">
+                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                                                        </path>
+                                                    </svg>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="p-10 text-center text-gray-400 text-sm italic">Không có lịch học nào khác.
+                                </div>
+                            @endforelse
                         </div>
                     </div>
 

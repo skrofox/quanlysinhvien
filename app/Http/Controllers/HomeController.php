@@ -16,8 +16,12 @@ class HomeController extends Controller
             return redirect()->route('login');
         }
 
-        // Truy xuất Sinh viên cùng với Điểm, Lớp học phần, Môn học, Học kỳ
-        $student = $user->student()->with(['grades.courseModule.subject', 'grades.courseModule.semester'])->first();
+        // Truy xuất Sinh viên cùng với Điểm, Lớp học phần, Môn học, Học kỳ, Khóa học
+        $student = $user->student()->with([
+            'grades.courseModule.subject', 
+            'grades.courseModule.semester',
+            'schoolClass.academicBatch'
+        ])->first();
 
         $totalCredits = 0;
         $totalWeightedScore10 = 0;
@@ -57,7 +61,37 @@ class HomeController extends Controller
         elseif ($gpa10 >= 4.0)
             $gpa4 = round(1.0 + ($gpa10 - 4.0) / 1.5 * 0.9, 2);
 
-        return view('student.index', compact('user', 'student', 'totalCredits', 'gpa10', 'gpa4', 'groupedGrades', 'semesters'));
+        // Lấy lịch học cho sinh viên (theo khóa học hoặc không gán khóa học)
+        $studentBatchId = $student->schoolClass->academic_batch_id ?? null;
+
+        $schedules = \App\Models\Schedule::with('semester')
+            ->where('is_active', true)
+            ->where(function($query) use ($studentBatchId) {
+                if ($studentBatchId) {
+                    $query->where('academic_batch_id', $studentBatchId)
+                          ->orWhereNull('academic_batch_id');
+                } else {
+                    $query->whereNull('academic_batch_id');
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Lấy lịch học của các khóa KHÁC
+        $otherSchedules = \App\Models\Schedule::with(['semester', 'academicBatch'])
+            ->where('is_active', true)
+            ->where(function($query) use ($studentBatchId) {
+                if ($studentBatchId) {
+                    $query->where('academic_batch_id', '!=', $studentBatchId)
+                          ->whereNotNull('academic_batch_id');
+                } else {
+                    $query->whereNotNull('academic_batch_id');
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('student.index', compact('user', 'student', 'totalCredits', 'gpa10', 'gpa4', 'groupedGrades', 'semesters', 'schedules', 'otherSchedules'));
     }
 
     public function giang_vien()

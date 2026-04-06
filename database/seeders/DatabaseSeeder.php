@@ -219,6 +219,10 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        echo "9. Đang khởi tạo Lịch học - Lịch thi...\n";
+        // 9. Schedules
+        $this->call(ScheduleSeeder::class);
+
         echo "\nHOÀN THÀNH SEEDING DỮ LIỆU!!!\n";
         echo "=================================\n";
         echo "Tài khoản Admin: admin@gmail.com / admin123\n";
