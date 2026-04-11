@@ -6,8 +6,30 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Semester;
 
+use App\Models\News;
+
 class HomeController extends Controller
 {
+    public function home()
+    {
+        $featuredNews = News::with('category')
+            ->where('status', 'published')
+            ->where('is_featured', true)
+            ->latest('published_at')
+            ->first();
+
+        $latestNews = News::with('category')
+            ->where('status', 'published')
+            ->when($featuredNews, function($query) use ($featuredNews) {
+                return $query->where('id', '!=', $featuredNews->id);
+            })
+            ->latest('published_at')
+            ->limit(3)
+            ->get();
+
+        return view('index', compact('featuredNews', 'latestNews'));
+    }
+
     public function index()
     {
         $user = Auth::user();

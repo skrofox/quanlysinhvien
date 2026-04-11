@@ -101,8 +101,7 @@
                     Xem tất cả tin tức
                     <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3">
-                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                     </svg>
                 </a>
             </div>
@@ -110,19 +109,18 @@
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <!-- Left: Big Featured Article -->
                 <div class="lg:col-span-8">
+                    @if($featuredNews)
                     <article
                         class="group relative overflow-hidden rounded-3xl shadow-lg bg-white hover:shadow-2xl transition-all duration-500 h-full flex flex-col border border-gray-100">
                         <div class="overflow-hidden relative h-[400px]">
-                            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
-                                alt="News Image"
+                            <img src="{{ $featuredNews->thumbnail ?? 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80' }}"
+                                alt="{{ $featuredNews->title }}"
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">
                             <div class="absolute top-6 left-6 flex gap-2">
                                 <span
-                                    class="bg-blue-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded shadow-lg backdrop-blur-md">Sự
-                                    kiện</span>
+                                    class="bg-blue-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded shadow-lg backdrop-blur-md">{{ $featuredNews->category->name }}</span>
                                 <span
-                                    class="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded shadow-lg backdrop-blur-md">Mới
-                                    nhât</span>
+                                    class="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded shadow-lg backdrop-blur-md">Nổi bật</span>
                             </div>
                         </div>
                         <div class="p-8 flex-grow flex flex-col justify-between">
@@ -132,22 +130,19 @@
                                             stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg> 3 giờ trước</span>
+                                        </svg> {{ $featuredNews->published_at ? $featuredNews->published_at->diffForHumans() : $featuredNews->created_at->diffForHumans() }}</span>
                                     <span class="flex items-center gap-1.5"><svg class="w-4 h-4" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        </svg> 2.1k lượt xem</span>
+                                        </svg> {{ number_format($featuredNews->views) }} lượt xem</span>
                                 </div>
                                 <h3
                                     class="text-3xl font-extrabold text-gray-900 leading-tight mb-4 group-hover:text-blue-600 transition-colors">
-                                    <a href="#">Lễ trao bằng tốt nghiệp đợt 1 năm 2026: Trọng thể và đầy cảm
-                                        xúc</a>
+                                    <a href="{{ route('news.show', $featuredNews->slug) }}">{{ $featuredNews->title }}</a>
                                 </h3>
                                 <p class="text-gray-600 mb-6 text-lg line-clamp-3 leading-relaxed">
-                                    Sáng ngày 20/03/2026, Trường Đại học Công Nghệ đã tổ chức Lễ Bế giảng và trao bằng
-                                    tốt nghiệp cho gần 2000 Tân Cử nhân, Kỹ sư. Buổi lễ đã để lại nhiều ấn tượng sâu sắc
-                                    và kỳ vọng về một thế hệ tương lai tri thức cao.
+                                    {{ $featuredNews->summary }}
                                 </p>
                             </div>
                             <div class="pt-6 mt-2 border-t border-gray-100 flex items-center justify-between">
@@ -159,7 +154,7 @@
                                         <p class="text-xs text-gray-500">Phòng Công tác SV</p>
                                     </div>
                                 </div>
-                                <a href="#"
+                                <a href="{{ route('news.show', $featuredNews->slug) }}"
                                     class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
                                     Đọc tiếp <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
@@ -170,23 +165,29 @@
                             </div>
                         </div>
                     </article>
+                    @else
+                    <div class="h-full flex items-center justify-center bg-gray-100 rounded-3xl border-2 border-dashed border-gray-300">
+                        <p class="text-gray-500">Chưa có tin nổi bật</p>
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Right: List of smaller articles -->
                 <div class="lg:col-span-4 flex flex-col gap-6">
 
+                    @foreach($latestNews as $article)
                     <article
                         class="group flex gap-5 bg-white p-4 rounded-2xl shadow border border-gray-100 hover:shadow-xl hover:border-blue-100 transition-all duration-300">
                         <div class="w-32 h-32 flex-shrink-0 overflow-hidden rounded-xl bg-gray-200">
-                            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                alt="News Image"
+                            <img src="{{ $article->thumbnail ?? 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80' }}"
+                                alt="{{ $article->title }}"
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                         <div class="flex flex-col justify-center">
-                            <span class="text-blue-600 text-xs font-bold uppercase tracking-wider mb-2">Đào tạo</span>
+                            <span class="text-blue-600 text-xs font-bold uppercase tracking-wider mb-2">{{ $article->category->name }}</span>
                             <h4
                                 class="text-lg font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-3 mb-2">
-                                <a href="#">Hội thảo quốc tế về Trí tuệ nhân tạo và Ứng dụng thực tiễn</a>
+                                <a href="{{ route('news.show', $article->slug) }}">{{ $article->title }}</a>
                             </h4>
                             <div class="text-sm text-gray-500 flex items-center gap-1.5">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,64 +195,13 @@
                                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                                     </path>
                                 </svg>
-                                18/03/2026
+                                {{ $article->published_at ? $article->published_at->format('d/m/Y') : $article->created_at->format('d/m/Y') }}
                             </div>
                         </div>
                     </article>
+                    @endforeach
 
-                    <article
-                        class="group flex gap-5 bg-white p-4 rounded-2xl shadow border border-gray-100 hover:shadow-xl hover:border-blue-100 transition-all duration-300">
-                        <div class="w-32 h-32 flex-shrink-0 overflow-hidden rounded-xl bg-gray-200">
-                            <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                alt="News Image"
-                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                        </div>
-                        <div class="flex flex-col justify-center">
-                            <span class="text-green-600 text-xs font-bold uppercase tracking-wider mb-2">Thông
-                                báo</span>
-                            <h4
-                                class="text-lg font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-3 mb-2">
-                                <a href="#">Cuộc thi Khởi nghiệp sinh viên: Cơ hội nhận đầu tư lên tới 500 triệu
-                                    đồng</a>
-                            </h4>
-                            <div class="text-sm text-gray-500 flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                15/03/2026
-                            </div>
-                        </div>
-                    </article>
-
-                    <article
-                        class="group flex gap-5 bg-white p-4 rounded-2xl shadow border border-gray-100 hover:shadow-xl hover:border-blue-100 transition-all duration-300">
-                        <div class="w-32 h-32 flex-shrink-0 overflow-hidden rounded-xl bg-gray-200">
-                            <img src="https://images.unsplash.com/photo-1577412647305-991150c7d163?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                alt="News Image"
-                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                        </div>
-                        <div class="flex flex-col justify-center">
-                            <span class="text-purple-600 text-xs font-bold uppercase tracking-wider mb-2">Đoàn -
-                                Hội</span>
-                            <h4
-                                class="text-lg font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-3 mb-2">
-                                <a href="#">Phát động Chiến dịch Mùa hè xanh 2026 cùng hàng ngàn phần quà hấp
-                                    dẫn</a>
-                            </h4>
-                            <div class="text-sm text-gray-500 flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                10/03/2026
-                            </div>
-                        </div>
-                    </article>
-
-                    <a href="#"
+                    <a href="{{ route('news.index') }}"
                         class="bg-white border-2 border-dashed border-gray-300 text-gray-600 font-bold py-4 rounded-2xl hover:border-blue-500 hover:text-blue-600 transition-all duration-300 h-full flex flex-col items-center justify-center">
                         <svg class="w-8 h-8 mb-2 text-gray-400 group-hover:text-blue-500" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
@@ -260,7 +210,6 @@
                             </path>
                         </svg>
                         Khám phá thêm chuyên mục
-                    </a>
 
                 </div>
             </div>

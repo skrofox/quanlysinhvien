@@ -3,10 +3,15 @@
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'index')->name('home');
+Route::get('/', [HomeController::class, 'home'])->name('home');
 
 Route::get('sinh-vien', [HomeController::class, 'index'])->name('sinh_vien');
 Route::get('giang-vien', [HomeController::class, 'giang_vien'])->name('giang_vien');
+
+// Tin tức
+Route::get('tin-tuc', [\App\Http\Controllers\NewsController::class, 'index'])->name('news.index');
+Route::get('tin-tuc/{slug}', [\App\Http\Controllers\NewsController::class, 'show'])->name('news.show');
+
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -31,6 +36,8 @@ Route::middleware(['auth'])->group(function () {
 
     // API Đổi mật khẩu chung
     Route::post('/api/change-password', [\App\Http\Controllers\HomeController::class, 'changePassword']);
+
+
 });
 
 require __DIR__ . '/auth.php';
