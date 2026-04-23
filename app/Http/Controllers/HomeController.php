@@ -38,10 +38,13 @@ class HomeController extends Controller
             return redirect()->route('login');
         }
 
-        // Truy xuất Sinh viên cùng với Điểm, Lớp học phần, Môn học, Học kỳ, Khóa học
+        // Truy xuất Sinh viên cùng với Điểm (chỉ lấy môn thuộc khoa của SV), Lớp học phần, Môn học, Học kỳ, Khóa học
         $student = $user->student()->with([
-            'grades.courseModule.subject', 
-            'grades.courseModule.semester',
+            'grades' => function($query) use ($user) {
+                $query->whereHas('courseModule.subject', function($q) use ($user) {
+                    $q->where('department_id', $user->student->schoolClass->department_id);
+                })->with(['courseModule.subject', 'courseModule.semester']);
+            },
             'schoolClass.academicBatch'
         ])->first();
 
@@ -86,31 +89,32 @@ class HomeController extends Controller
         // Lấy lịch học cho sinh viên (theo khóa học hoặc không gán khóa học)
         $studentBatchId = $student->schoolClass->academic_batch_id ?? null;
 
-        $schedules = \App\Models\Schedule::with('semester')
-            ->where('is_active', true)
-            ->where(function($query) use ($studentBatchId) {
-                if ($studentBatchId) {
-                    $query->where('academic_batch_id', $studentBatchId)
-                          ->orWhereNull('academic_batch_id');
-                } else {
-                    $query->whereNull('academic_batch_id');
-                }
+        // Lấy lịch học cho các lớp học phần mà sinh viên này ĐÃ ĐĂNG KÝ và CHƯA HOÀN THÀNH (chưa chốt điểm)
+        $schedules = \App\Models\Schedule::with(['courseModule.subject', 'courseModule.semester'])
+            ->whereIn('course_module_id', function($query) use ($user) {
+                $query->select('course_module_id')
+                    ->from('course_registrations')
+                    ->where('student_id', $user->id);
             })
-            ->orderBy('created_at', 'desc')
+            ->whereNotExists(function ($query) use ($user) {
+                $query->select(\Illuminate\Support\Facades\DB::raw(1))
+                    ->from('grade_course_modules')
+                    ->whereColumn('grade_course_modules.course_module_id', 'schedules.course_module_id')
+                    ->where('grade_course_modules.student_id', $user->student->id ?? 0)
+                    ->where('is_finalized', 1);
+            })
+            ->latest()
             ->get();
 
-        // Lấy lịch học của các khóa KHÁC
-        $otherSchedules = \App\Models\Schedule::with(['semester', 'academicBatch'])
-            ->where('is_active', true)
-            ->where(function($query) use ($studentBatchId) {
-                if ($studentBatchId) {
-                    $query->where('academic_batch_id', '!=', $studentBatchId)
-                          ->whereNotNull('academic_batch_id');
-                } else {
-                    $query->whereNotNull('academic_batch_id');
-                }
+        // Lấy một số lịch học khác (ví dụ: các lớp đang mở trong kỳ này mà SV chưa đăng ký)
+        $otherSchedules = \App\Models\Schedule::with(['courseModule.subject', 'courseModule.semester'])
+            ->whereNotIn('course_module_id', function($query) use ($user) {
+                $query->select('course_module_id')
+                    ->from('course_registrations')
+                    ->where('student_id', $user->id);
             })
-            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->latest()
             ->get();
 
         return view('student.index', compact('user', 'student', 'totalCredits', 'gpa10', 'gpa4', 'groupedGrades', 'semesters', 'schedules', 'otherSchedules'));

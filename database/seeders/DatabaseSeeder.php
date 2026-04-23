@@ -92,11 +92,21 @@ class DatabaseSeeder extends Seeder
             }
 
             // 5 subjects per department
-            for ($i = 1; $i <= 5; $i++) {
+            $subjectNames = [
+                'THNN' => ['Lập trình Web', 'Cơ sở dữ liệu', 'Nhập môn Tin học', 'Cấu trúc dữ liệu và giải thuật', 'Tin học văn phòng'],
+                'QTKD' => ['Quản trị học', 'Marketing căn bản', 'Kế toán tài chính', 'Kinh tế vi mô', 'Quản trị nhân sự'],
+                'NN'   => ['Tiếng Anh giao tiếp', 'Ngữ pháp tiếng Anh', 'Biên phiên dịch', 'Văn hóa các nước', 'Tiếng Anh chuyên ngành'],
+                'DT'   => ['Mạch điện tử', 'Kỹ thuật số', 'Vi xử lý', 'Kỹ thuật viễn thông', 'Hệ thống nhúng'],
+                'CK'   => ['Hình học họa hình', 'Sức bền vật liệu', 'Dung sai và kỹ thuật đo', 'Cơ sở thiết kế máy', 'Công nghệ chế tạo máy'],
+            ];
+
+            $names = $subjectNames[$dept->department_code] ?? ['Môn học 1', 'Môn học 2', 'Môn học 3', 'Môn học 4', 'Môn học 5'];
+
+            foreach ($names as $index => $name) {
                 $createdSubjects[] = Subject::firstOrCreate(
-                    ['subject_code' => $dept->department_code . '10' . $i],
+                    ['subject_code' => $dept->department_code . '10' . ($index + 1)],
                     [
-                        'subject_name' => 'Môn học ' . $i . ' (' . $dept->department_code . ')',
+                        'subject_name' => $name,
                         'number_of_credits' => $faker->numberBetween(2, 4),
                         'department_id' => $dept->id,
                     ]

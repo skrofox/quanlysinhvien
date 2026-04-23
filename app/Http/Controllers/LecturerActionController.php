@@ -76,21 +76,25 @@ class LecturerActionController extends Controller
         
         $studentsData = [];
         foreach ($registrations as $reg) {
-            // $reg->student_id links to user_id of student, let's fetch Student model directly
             $student = Student::where('user_id', $reg->student_id)->first();
             if (!$student) continue;
 
-            // Fetch the grade record
+            // Lấy điểm chi tiết (DCC, DGK, DCK)
+            $detailedGrade = \App\Models\GradeCourseModule::where('student_id', $student->id)
+                ->where('course_module_id', $courseId)
+                ->first();
+
+            // Lấy điểm tổng hợp (L1, L2, L3, L4)
             $grade = Grade::where('student_id', $student->id)
                 ->where('course_module_id', $courseId)
                 ->first();
 
             $statusText = 'Chưa nhập điểm';
-            if ($grade) {
-                if ($grade->attendance_score == 0 && $grade->midterm_score == 0 && $grade->final_score == 0) {
+            if ($detailedGrade) {
+                if ($detailedGrade->DCC == 0 && $detailedGrade->DGK == 0 && $detailedGrade->DCK == 0) {
                     $statusText = 'Chưa nhập điểm';
                 } else {
-                    $statusText = ($grade->status == 'pass' ? 'Đạt' : 'Trượt');
+                    $statusText = ($grade && $grade->status == 'pass' ? 'Đạt' : 'Trượt');
                 }
             }
 
@@ -98,10 +102,15 @@ class LecturerActionController extends Controller
                 'student_id' => $student->id,
                 'student_code' => $student->student_code,
                 'full_name' => $student->full_name,
-                'grade_id' => $grade ? $grade->id : null,
-                'attendance_score' => $grade ? $grade->attendance_score : 0,
-                'midterm_score' => $grade ? $grade->midterm_score : 0,
-                'final_score' => $grade ? $grade->final_score : 0,
+                'detailed_id' => $detailedGrade ? $detailedGrade->id : null,
+                'DCC' => $detailedGrade ? $detailedGrade->DCC : 0,
+                'DGK' => $detailedGrade ? $detailedGrade->DGK : 0,
+                'DCK' => $detailedGrade ? $detailedGrade->DCK : 0,
+                'is_finalized' => $detailedGrade ? (bool)$detailedGrade->is_finalized : false,
+                'L1' => $grade ? $grade->L1 : null,
+                'L2' => $grade ? $grade->L2 : null,
+                'L3' => $grade ? $grade->L3 : null,
+                'L4' => $grade ? $grade->L4 : null,
                 'average_score' => $grade ? $grade->average_score : 0,
                 'status' => $statusText
             ];
@@ -123,9 +132,9 @@ class LecturerActionController extends Controller
             'course_id' => 'required|exists:course_modules,id',
             'grades' => 'required|array',
             'grades.*.student_id' => 'required|exists:students,id',
-            'grades.*.attendance_score' => 'required|numeric|min:0|max:10',
-            'grades.*.midterm_score' => 'required|numeric|min:0|max:10',
-            'grades.*.final_score' => 'required|numeric|min:0|max:10',
+            'grades.*.DCC' => 'nullable|numeric|min:0|max:10',
+            'grades.*.DGK' => 'nullable|numeric|min:0|max:10',
+            'grades.*.DCK' => 'nullable|numeric|min:0|max:10',
         ]);
 
         $courseId = $request->input('course_id');
@@ -142,23 +151,67 @@ class LecturerActionController extends Controller
 
         DB::beginTransaction();
         try {
+            $lockedCount = 0;
             foreach ($studentsGrades as $sg) {
-                // Find or create grade record
-                $grade = Grade::firstOrNew([
+                // 1. Tìm bản ghi điểm chi tiết
+                $detailedGrade = \App\Models\GradeCourseModule::firstOrNew([
                     'student_id' => $sg['student_id'],
                     'course_module_id' => $courseId
                 ]);
 
-                // Update scores
-                // The Grades model has booted event calculating average & status automatically before save
-                $grade->attendance_score = (int) ($sg['attendance_score'] ?? 0);
-                $grade->midterm_score = (float) ($sg['midterm_score'] ?? 0);
-                $grade->final_score = (float) ($sg['final_score'] ?? 0);
-                
-                $grade->save();
+                // Nếu đã chốt điểm (finalized), không cho sửa nữa
+                if ($detailedGrade->is_finalized) {
+                    $lockedCount++;
+                    continue;
+                }
+
+                $detailedGrade->DCC = (float)($sg['DCC'] ?? 0);
+                $detailedGrade->DGK = (float)($sg['DGK'] ?? 0);
+                $detailedGrade->DCK = (float)($sg['DCK'] ?? 0);
+                $detailedGrade->semester_id = $module->semester_id;
+
+                // Kiểm tra xem đã nhập đủ 3 cột chưa (giả sử điểm > 0 hoặc được nhập cụ thể)
+                // Vì mặc định là 0, ta có thể coi là "chưa nhập" nếu cả 3 bằng 0, 
+                // nhưng 0 cũng là một mức điểm. 
+                // Ở đây ta sẽ kiểm tra xem các giá trị có được gửi lên đầy đủ không.
+                $isFull = isset($sg['DCC']) && isset($sg['DGK']) && isset($sg['DCK']);
+
+                if ($isFull) {
+                    $detailedGrade->is_finalized = true;
+                }
+
+                $detailedGrade->save();
+
+                // Chỉ khi đã chốt điểm mới cập nhật sang bảng Grade (L1-L4)
+                if ($detailedGrade->is_finalized) {
+                    // Tính điểm trung bình của lần học này
+                    $avg = round(($detailedGrade->DCC * 0.1) + ($detailedGrade->DGK * 0.3) + ($detailedGrade->DCK * 0.6), 1);
+
+                    $grade = Grade::firstOrNew([
+                        'student_id' => $sg['student_id'],
+                        'course_module_id' => $courseId
+                    ]);
+
+                    // Xác định lần học (L1, L2, L3, L4) dựa trên lịch sử đăng ký
+                    $subjectId = $module->subject_id;
+                    $attemptCount = CourseRegistration::where('student_id', Student::find($sg['student_id'])->user_id)
+                        ->whereHas('courseModule', function($q) use ($subjectId) {
+                            $q->where('subject_id', $subjectId);
+                        })->count();
+
+                    $column = 'L' . min($attemptCount, 4);
+                    $grade->$column = $avg;
+                    $grade->attendance_score = $detailedGrade->DCC;
+                    $grade->save();
+                }
             }
             DB::commit();
-            return response()->json(['message' => 'Lưu bảng điểm thành công!']);
+
+            $msg = 'Lưu bảng điểm thành công!';
+            if ($lockedCount > 0) {
+                $msg .= " (Có $lockedCount sinh viên đã chốt điểm trước đó nên không thể thay đổi)";
+            }
+            return response()->json(['message' => $msg]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Lỗi lưu điểm: ' . $e->getMessage()], 500);
@@ -217,8 +270,6 @@ class LecturerActionController extends Controller
                 'course_module_id' => $courseId
             ], [
                 'attendance_score' => 0,
-                'midterm_score' => 0,
-                'final_score' => 0,
                 'average_score' => 0,
                 'status' => 'pending'
             ]);

@@ -13,6 +13,7 @@ class GradeCourseModule extends Model
         'DCC',
         'DGK',
         'DCK',
+        'is_finalized',
     ];
 
     public function student()

@@ -251,9 +251,9 @@
                                         course_id: this.selectedClass,
                                         grades: this.students.map(s => ({
                                             student_id: s.student_id,
-                                            attendance_score: s.attendance_score || 0,
-                                            midterm_score: s.midterm_score || 0,
-                                            final_score: s.final_score || 0
+                                            DCC: s.DCC || 0,
+                                            DGK: s.DGK || 0,
+                                            DCK: s.DCK || 0
                                         }))
                                     };
                                     const res = await fetch('/giang-vien/api/save-grades', {
@@ -269,13 +269,15 @@
                             },
                             calculateRow(st) {
                                 // Clamp values between 0-10
-                                ['attendance_score', 'midterm_score', 'final_score'].forEach(key => {
+                                ['DCC', 'DGK', 'DCK'].forEach(key => {
                                     if(st[key] > 10) st[key] = 10;
                                     if(st[key] < 0) st[key] = 0;
                                 });
-                                let avg = Math.round(((parseFloat(st.attendance_score)||0) + (parseFloat(st.midterm_score)||0) + (parseFloat(st.final_score)||0)) / 3 * 100) / 100;
-                                st.average_score = avg;
-                                st.status = avg >= 5 ? 'Đạt' : 'Trượt';
+                                // Tính điểm TB cho lần học này (L1/L2/L3/L4 tùy đky)
+                                let currentAvg = Math.round(((parseFloat(st.DCC)||0)*0.1 + (parseFloat(st.DGK)||0)*0.3 + (parseFloat(st.DCK)||0)*0.6) * 10) / 10;
+                                
+                                // Cập nhật trạng thái hiển thị tạm thời
+                                st.status = currentAvg >= 4 ? 'Đạt' : 'Trượt';
                             }
                          }"
                          x-init="fetchClasses()"
@@ -286,7 +288,7 @@
                                 <div class="text-indigo-500 mt-1"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H14"></path></svg></div>
                                 <div>
                                     <h4 class="font-bold text-indigo-800">Sổ điểm Lớp học phần</h4>
-                                    <p class="text-indigo-600 text-sm mt-1">Chọn lớp để quản lý thành viên và nhập điểm trực tiếp.</p>
+                                    <p class="text-indigo-600 text-sm mt-1">Nhập điểm thành phần (DCC, DGK, DCK) để hệ thống tự động tính toán lần học.</p>
                                 </div>
                             </div>
                             <div class="w-full md:w-auto flex flex-col sm:flex-row gap-2">
@@ -296,23 +298,12 @@
                                         <option :value="cls.id" x-text="cls.subject_code + ' - ' + cls.subject_name"></option>
                                     </template>
                                 </select>
-                                
-                                <div class="flex gap-2" x-show="selectedClass">
-                                    <input type="text" x-model="studentCodeToAdd" placeholder="Nhập mã SV..." 
-                                           class="border-indigo-300 rounded-lg text-sm px-3 py-2 w-full sm:w-32 focus:ring-indigo-500 focus:border-indigo-500 font-medium"
-                                           @keyup.enter="addStudent()">
-                                    <button @click="addStudent()" :disabled="addingStudent" 
-                                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 whitespace-nowrap">
-                                        <span x-show="!addingStudent">Thêm SV</span>
-                                        <span x-show="addingStudent">...</span>
-                                    </button>
-                                </div>
                             </div>
                         </div>
 
                         <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden relative" style="min-height: 500px;">
                             <div class="p-6 border-b border-gray-200 bg-gray-50/50">
-                                <h4 class="font-bold text-gray-800 text-lg">Danh sách Sinh viên của lớp</h4>
+                                <h4 class="font-bold text-gray-800 text-lg">Danh sách Sinh viên & Bảng điểm chi tiết</h4>
                             </div>
                             
                             <div class="p-0 overflow-x-auto pb-32">
@@ -323,16 +314,19 @@
 
                                 <table x-show="!loadingStudents" class="w-full text-left border-collapse">
                                     <thead>
-                                        <tr class="bg-gray-100 text-gray-600 text-xs uppercase font-black tracking-widest border-b">
+                                        <tr class="bg-gray-100 text-gray-600 text-[10px] uppercase font-black tracking-widest border-b">
                                             <th class="p-4 text-center w-12">STT</th>
                                             <th class="p-4">Mã SV</th>
                                             <th class="p-4">Họ và Tên</th>
-                                            <th class="p-4 text-center w-28">10%</th>
-                                            <th class="p-4 text-center w-28">30%</th>
-                                            <th class="p-4 text-center w-28">60%</th>
-                                            <th class="p-4 text-center">TB Hệ 10</th>
+                                            <th class="p-4 text-center w-24 bg-blue-50/50">DCC (10%)</th>
+                                            <th class="p-4 text-center w-24 bg-blue-50/50">DGK (30%)</th>
+                                            <th class="p-4 text-center w-24 bg-blue-50/50">DCK (60%)</th>
+                                            <th class="p-4 text-center border-l w-16 text-gray-400">L1</th>
+                                            <th class="p-4 text-center w-16 text-gray-400">L2</th>
+                                            <th class="p-4 text-center w-16 text-gray-400">L3</th>
+                                            <th class="p-4 text-center w-16 text-gray-400">L4</th>
+                                            <th class="p-4 text-center">TB</th>
                                             <th class="p-4 text-center">TRẠNG THÁI</th>
-                                            <th class="p-4 text-center">THAO TÁC</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 text-sm">
@@ -341,35 +335,35 @@
                                                 <td class="p-4 text-center text-gray-400 font-bold" x-text="index + 1"></td>
                                                 <td class="p-4 font-mono font-bold text-indigo-600" x-text="st.student_code"></td>
                                                 <td class="p-4 font-black text-gray-800" x-text="st.full_name"></td>
-                                                <td class="p-4">
-                                                    <input type="number" min="0" max="10" step="0.5" x-model.number="st.attendance_score" @input="calculateRow(st)" class="w-full text-center border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2 font-bold shadow-sm">
+                                                <!-- Inputs for components -->
+                                                <td class="p-2 bg-blue-50/20">
+                                                    <input type="number" step="0.1" x-model.number="st.DCC" :disabled="st.is_finalized" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
                                                 </td>
-                                                <td class="p-4">
-                                                    <input type="number" min="0" max="10" step="0.5" x-model.number="st.midterm_score" @input="calculateRow(st)" class="w-full text-center border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2 font-bold shadow-sm">
+                                                <td class="p-2 bg-blue-50/20">
+                                                    <input type="number" step="0.1" x-model.number="st.DGK" :disabled="st.is_finalized" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
                                                 </td>
-                                                <td class="p-4">
-                                                    <input type="number" min="0" max="10" step="0.5" x-model.number="st.final_score" @input="calculateRow(st)" class="w-full text-center border-indigo-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2 font-black shadow-sm text-indigo-700 bg-indigo-50/30">
+                                                <td class="p-2 bg-blue-50/20">
+                                                    <input type="number" step="0.1" x-model.number="st.DCK" :disabled="st.is_finalized" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
                                                 </td>
+                                                <!-- History L1-L4 -->
+                                                <td class="p-4 text-center border-l text-xs text-gray-500" x-text="st.L1 || '-'"></td>
+                                                <td class="p-4 text-center text-xs text-gray-500" x-text="st.L2 || '-'"></td>
+                                                <td class="p-4 text-center text-xs text-gray-500" x-text="st.L3 || '-'"></td>
+                                                <td class="p-4 text-center text-xs text-gray-500" x-text="st.L4 || '-'"></td>
+                                                
                                                 <td class="p-4 text-center">
-                                                    <span class="font-black text-gray-900 bg-gray-100 px-4 py-2 rounded-lg" x-text="st.average_score"></span>
+                                                    <span class="font-black text-gray-900" x-text="st.average_score"></span>
                                                 </td>
-                                                <td class="p-4 text-center">
+                                                <td class="p-4 text-center flex items-center justify-center gap-1">
                                                     <span :class="{
                                                          'bg-green-100 text-green-700': st.status === 'Đạt',
                                                          'bg-red-100 text-red-700': st.status === 'Trượt',
                                                          'bg-gray-100 text-gray-700': st.status === 'Chưa nhập điểm'
-                                                     }" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase" x-text="st.status"></span>
+                                                     }" class="px-2 py-1 rounded-full text-[9px] font-black uppercase" x-text="st.status"></span>
+                                                    <template x-if="st.is_finalized">
+                                                        <svg class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                                                    </template>
                                                 </td>
-                                                <td class="p-4 text-center">
-                                                     <button @click="removeStudent(st.student_id)" class="text-red-500 hover:text-red-700 transition p-2 rounded-lg hover:bg-red-50" title="Xóa khỏi lớp">
-                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                     </button>
-                                                 </td>
-                                            </tr>
-                                        </template>
-                                        <template x-if="students.length === 0 && !loadingStudents">
-                                            <tr>
-                                                <td colspan="9" class="p-24 text-center text-gray-400 font-medium italic italic">Vui lòng chọn lớp học phần ở thanh chọn phía trên.</td>
                                             </tr>
                                         </template>
                                     </tbody>
@@ -380,12 +374,11 @@
                             <div x-show="students.length > 0" class="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-6" x-transition>
                                 <div class="bg-indigo-600 rounded-3xl shadow-2xl p-2 flex items-center justify-between border-4 border-white">
                                     <div class="px-4">
-                                        <p class="text-[10px] uppercase font-bold text-indigo-100/80">Quản lý điểm</p>
+                                        <p class="text-[10px] uppercase font-bold text-indigo-100/80">Quản lý điểm chi tiết</p>
                                         <p class="text-sm font-black text-white">Sẵn sàng lưu</p>
                                     </div>
                                     <button @click="saveGrades()" :disabled="saving" class="bg-white hover:bg-gray-100 text-indigo-700 px-8 py-4 rounded-2xl font-black shadow-lg transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50">
                                         <svg x-show="!saving" class="w-5 h-5 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                                        <svg x-show="saving" class="animate-spin h-5 w-5 text-indigo-600" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor" class="opacity-75"></path></svg>
                                         <span x-text="saving ? 'ĐANG XỬ LÝ...' : 'LƯU BẢNG ĐIỂM'"></span>
                                     </button>
                                 </div>

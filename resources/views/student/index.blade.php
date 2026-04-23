@@ -346,10 +346,15 @@
                                                     {{ $grade->courseModule->subject->subject_name ?? 'N/A' }}</td>
                                                 <td class="p-4 text-center">
                                                     {{ $grade->courseModule->subject->number_of_credits ?? 0 }}</td>
-                                                <td class="p-4 text-center text-sm"><span class="text-gray-400">CC:</span>
-                                                    {{ $grade->attendance_score }} <br> <span
-                                                        class="text-gray-400">GK:</span> {{ $grade->midterm_score }}</td>
-                                                <td class="p-4 text-center">{{ $grade->final_score }}</td>
+                                                <td class="p-4 text-center text-sm">
+                                                    <span class="text-gray-400">CC:</span> {{ $grade->attendance_score }}
+                                                </td>
+                                                <td class="p-4 text-center text-sm">
+                                                    <div class="flex flex-col">
+                                                        @if($grade->L1) <span><span class="text-gray-400">L1:</span> {{ $grade->L1 }}</span> @endif
+                                                        @if($grade->L2) <span><span class="text-gray-400">L2:</span> {{ $grade->L2 }}</span> @endif
+                                                    </div>
+                                                </td>
                                                 <td class="p-4 text-center font-extrabold text-gray-800">
                                                     {{ $grade->average_score }}</td>
                                                 <td
@@ -372,203 +377,243 @@
                     <!-- Tab: Đăng ký học phần -->
                     <div x-show="activeTab === 'registration'" style="display: none;" class="space-y-6"
                         x-data="{
-                            courses: [],
+                            categories: { first_time: [], retake: [], improvement: [], ongoing: [] },
+                            currentSchedules: [],
                             loading: true,
-                            searchTerm: '',
-                            showModal: false,
-                            studentList: [],
-                            selectedCourseName: '',
-                            async fetchCourses() {
+                            errorMessage: '',
+                            selectedSubject: null,
+                            showScheduleSelection: false,
+                            async fetchCategories() {
                                 this.loading = true;
+                                this.errorMessage = '';
                                 try {
                                     const res = await fetch('/sinh-vien/api/courses');
-                                    this.courses = await res.json();
-                                } catch (e) { console.error(e); }
+                                    const data = await res.json();
+                                    if (data.error) {
+                                        this.errorMessage = data.error;
+                                    } else {
+                                        this.categories = data.categories;
+                                        this.currentSchedules = data.current_schedules;
+                                    }
+                                } catch (e) { 
+                                    this.errorMessage = 'Lỗi kết nối máy chủ. Vui lòng thử lại.';
+                                    console.error(e); 
+                                }
                                 this.loading = false;
                             },
-                            async register(id) {
+                            async register(moduleId) {
+                                if (!confirm('Xác nhận đăng ký lớp học này?')) return;
                                 const res = await fetch('/sinh-vien/api/register', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                    body: JSON.stringify({ course_id: id })
+                                    body: JSON.stringify({ course_id: moduleId })
                                 });
                                 const data = await res.json();
                                 alert(data.message);
-                                this.fetchCourses();
+                                if (res.ok) {
+                                    this.showScheduleSelection = false;
+                                    this.fetchCategories();
+                                }
                             },
-                            async cancel(id) {
+                            async cancel(moduleId) {
                                 if (!confirm('Bạn có chắc chắn muốn hủy đăng ký lớp học này?')) return;
                                 const res = await fetch('/sinh-vien/api/cancel', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                    body: JSON.stringify({ course_id: id })
+                                    body: JSON.stringify({ course_id: moduleId })
                                 });
                                 const data = await res.json();
                                 alert(data.message);
-                                this.fetchCourses();
+                                if (res.ok) {
+                                    this.showScheduleSelection = false;
+                                    this.fetchCategories();
+                                }
                             },
-                            async viewStudents(course) {
-                                this.selectedCourseName = course.subject_name;
-                                this.showModal = true;
-                                this.studentList = [];
-                                const res = await fetch(`/sinh-vien/api/course-students/${course.id}`);
-                                this.studentList = await res.json();
-                            },
-                            get filteredCourses() {
-                                return this.courses.filter(c =>
-                                    c.subject_name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                                    c.subject_code.toLowerCase().includes(this.searchTerm.toLowerCase())
-                                );
+                            openSelection(subject) {
+                                if (!subject.has_modules) {
+                                    alert('Môn học này hiện chưa có lớp học phần nào được mở trong kỳ này.');
+                                    return;
+                                }
+                                this.selectedSubject = subject;
+                                this.showScheduleSelection = true;
                             }
-                        }" x-init="fetchCourses()">
+                        }" x-init="fetchCategories()">
 
                         <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl flex gap-4">
-                            <div class="text-blue-500 mt-1"><svg class="w-6 h-6" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg></div>
+                            <div class="text-blue-500 mt-1"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg></div>
                             <div>
-                                <h4 class="font-bold text-blue-800">Kỳ Đăng Ký Đang Mở:
-                                    {{ $semesters->first()->semester_name ?? 'Học kỳ mới' }}</h4>
-                                <p class="text-blue-600 text-sm mt-1">Hạn đăng ký đang diễn ra. Sinh viên vui lòng hoàn
-                                    thành đăng ký lộ trình học tập của mình sớm nhất.</p>
+                                <h4 class="font-bold text-blue-800">Kỳ Đăng Ký Học Phần</h4>
+                                <p class="text-blue-600 text-sm mt-1">Danh sách các môn học thuộc khoa của bạn. Vui lòng kiểm tra kỹ lịch học trước khi đăng ký.</p>
                             </div>
                         </div>
 
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div
-                                class="p-5 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center bg-gray-50/50 gap-4">
-                                <h4 class="font-bold text-gray-800">Danh sách môn học mở kỳ này</h4>
-                                <div class="relative w-full md:w-64">
-                                    <input type="text" x-model="searchTerm" placeholder="Tìm tên hoặc mã môn..."
-                                        class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <svg class="w-4 h-4 text-gray-400 absolute right-3 top-3" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <div class="p-0 overflow-x-auto min-h-[300px]">
-                                <div x-show="loading" class="flex items-center justify-center py-20">
-                                    <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg"
-                                        fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10"
-                                            stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
-                                    </svg>
-                                </div>
-
-                                <table x-show="!loading" class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="bg-gray-100 text-gray-500 text-xs uppercase tracking-wider">
-                                            <th class="p-4 font-bold">Mã Học Phần</th>
-                                            <th class="p-4 font-bold">Tên Môn Học</th>
-                                            <th class="p-4 font-bold text-center">STC</th>
-                                            <th class="p-4 font-bold text-center">Sĩ số</th>
-                                            <th class="p-4 font-bold text-center">Đăng ký</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 text-gray-700 text-sm">
-                                        <template x-for="course in filteredCourses" :key="course.id">
-                                            <tr class="hover:bg-gray-50 transition-colors">
-                                                <td class="p-4 font-medium text-blue-600" x-text="course.subject_code">
-                                                </td>
-                                                <td class="p-4">
-                                                    <div class="font-bold text-gray-800" x-text="course.subject_name">
-                                                    </div>
-                                                    <div class="text-xs text-gray-500 mt-1"
-                                                        x-text="'GV: ' + course.lecturer_name"></div>
-                                                </td>
-                                                <td class="p-4 text-center" x-text="course.credits"></td>
-                                                <td class="p-4 text-center">
-                                                    <button @click="viewStudents(course)"
-                                                        class="group inline-flex flex-col items-center">
-                                                        <span
-                                                            :class="course.is_full ? 'text-red-500 font-bold' : 'text-gray-700'"
-                                                            x-text="course.current_enrollment + '/' + course.capacity"></span>
-                                                        <span
-                                                            class="text-[10px] text-blue-500 underline opacity-0 group-hover:opacity-100 transition-opacity">Xem
-                                                            danh sách</span>
-                                                    </button>
-                                                </td>
-                                                <td class="p-4 text-center">
-                                                    <template x-if="course.is_registered">
-                                                        <button @click="cancel(course.id)"
-                                                            class="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1.5 rounded-lg font-bold transition">Hủy
-                                                            đăng ký</button>
-                                                    </template>
-                                                    <template x-if="!course.is_registered">
-                                                        <button @click="register(course.id)" :disabled="course.is_full"
-                                                            :class="course.is_full ?
-                                                                'bg-gray-200 text-gray-400 cursor-not-allowed' :
-                                                                'bg-blue-600 text-white hover:bg-blue-700'"
-                                                            class="px-5 py-1.5 rounded-lg font-bold transition shadow-sm"
-                                                            x-text="course.is_full ? 'Đã đầy' : 'Đăng ký'"></button>
-                                                    </template>
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <!-- Error Message -->
+                        <div x-show="errorMessage" class="bg-red-50 border border-red-200 p-6 rounded-2xl text-center shadow-sm" style="display: none;">
+                            <div class="text-red-500 mb-2 flex justify-center"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div>
+                            <h4 class="font-bold text-red-800 text-lg">Không thể tải dữ liệu</h4>
+                            <p class="text-red-600 mt-1" x-text="errorMessage"></p>
+                            <button @click="fetchCategories()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">Thử lại</button>
                         </div>
 
-                        <!-- Modal -->
-                        <div x-show="showModal"
-                            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                            x-transition x-cloak>
-                            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
-                                @click.away="showModal = false">
-                                <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                    <div>
-                                        <h3 class="text-xl font-bold text-gray-800">Danh sách sinh viên</h3>
-                                        <p class="text-blue-600 text-xs font-bold mt-1" x-text="selectedCourseName"></p>
+                        <div x-show="!showScheduleSelection && !errorMessage" class="space-y-8">
+                            <template x-for="(list, type) in categories" :key="type">
+                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                    <div class="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                                        <h4 class="font-bold text-gray-800 uppercase text-sm" x-text="type === 'first_time' ? '1. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '2. Danh sách học phần đăng ký học lại' : (type === 'improvement' ? '3. Danh sách học phần đăng ký học cải thiện' : '4. Danh sách học phần đang học / Thiếu điểm'))"></h4>
+                                        <span class="text-xs text-gray-400" x-text="list.length + ' môn'"></span>
                                     </div>
-                                    <button @click="showModal = false"
-                                        class="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr class="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wider">
+                                                    <th class="p-4 font-bold">#</th>
+                                                    <th class="p-4 font-bold">Mã HP</th>
+                                                    <th class="p-4 font-bold">Tên học phần</th>
+                                                    <th class="p-4 font-bold text-center">STC</th>
+                                                    <th class="p-4 font-bold text-center">DCC</th>
+                                                    <th class="p-4 font-bold text-center">DGK</th>
+                                                    <th class="p-4 font-bold text-center">DCK</th>
+                                                    <th class="p-4 font-bold text-center">Tổng kết</th>
+                                                    <th class="p-4 font-bold text-center">Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200 text-sm">
+                                                <template x-for="(subject, index) in list" :key="subject.subject_id">
+                                                    <tr class="hover:bg-blue-50/30 transition-colors">
+                                                        <td class="p-4 text-gray-400" x-text="index + 1"></td>
+                                                        <td class="p-4 font-medium text-blue-600" x-text="subject.subject_code"></td>
+                                                        <td class="p-4 font-bold text-gray-800" x-text="subject.subject_name"></td>
+                                                        <td class="p-4 text-center" x-text="subject.credits"></td>
+                                                        <td class="p-4 text-center" x-text="subject.DCC ?? '-'"></td>
+                                                        <td class="p-4 text-center" x-text="subject.DGK ?? '-'"></td>
+                                                        <td class="p-4 text-center" x-text="subject.DCK ?? '-'"></td>
+                                                        <td class="p-4 text-center font-bold" x-text="subject.average_score ?? '-'"></td>
+                                                        <td class="p-4 text-center">
+                                                            <template x-if="subject.has_modules">
+                                                                <button @click="openSelection(subject)" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Đăng ký</button>
+                                                            </template>
+                                                            <template x-if="!subject.has_modules">
+                                                                <span class="bg-gray-100 text-gray-400 px-3 py-1 rounded text-xs font-bold">Chưa mở lớp</span>
+                                                            </template>
+                                                            <template x-if="subject.is_ongoing">
+                                                                <span class="bg-orange-100 text-orange-600 px-3 py-1 rounded text-xs font-bold ml-1">Đang học</span>
+                                                            </template>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                                <template x-if="list.length === 0">
+                                                    <tr>
+                                                        <td colspan="9" class="p-8 text-center text-gray-400 italic">Không có môn học nào trong danh mục này.</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="max-h-[50vh] overflow-y-auto">
-                                    <table class="w-full text-left">
-                                        <thead class="sticky top-0 bg-gray-50 text-gray-500 text-[10px] uppercase">
-                                            <tr>
-                                                <th class="p-4 pl-6">STT</th>
-                                                <th class="p-4">MSSV</th>
-                                                <th class="p-4 pr-6">Họ và Tên</th>
+                            </template>
+                            <div x-show="loading" class="text-center py-20 text-gray-400">Đang tải dữ liệu đăng ký...</div>
+                        </div>
+
+                        <!-- View: Chọn thời khóa biểu -->
+                        <div x-show="showScheduleSelection" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+                            <div class="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800" x-text="'Chọn lớp cho học phần: ' + selectedSubject?.subject_name"></h3>
+                                    <p class="text-sm text-gray-500 mt-1">Vui lòng so sánh lịch học với các môn đã đăng ký để tránh trùng lịch.</p>
+                                </div>
+                                <button @click="showScheduleSelection = false" class="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                    Quay lại
+                                </button>
+                            </div>
+                            
+                            <div class="p-6 space-y-8">
+                                <!-- So sánh lịch học -->
+                                <div x-show="currentSchedules.length > 0">
+                                    <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        Thời khóa biểu các môn đã đăng ký (Để so sánh)
+                                    </h4>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse bg-orange-50/30">
+                                            <thead>
+                                                <tr class="bg-orange-100 text-orange-800 text-[10px] uppercase">
+                                                    <th class="p-2 border border-orange-200">Học phần</th>
+                                                    <th class="p-2 border border-orange-200">Thứ 2</th>
+                                                    <th class="p-2 border border-orange-200">Thứ 3</th>
+                                                    <th class="p-2 border border-orange-200">Thứ 4</th>
+                                                    <th class="p-2 border border-orange-200">Thứ 5</th>
+                                                    <th class="p-2 border border-orange-200">Thứ 6</th>
+                                                    <th class="p-2 border border-orange-200">Thứ 7</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-xs">
+                                                <template x-for="s in currentSchedules" :key="s.subject_name">
+                                                    <tr>
+                                                        <td class="p-2 border border-orange-100 font-bold" x-text="s.subject_name"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.monday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.tuesday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.wednesday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.thursday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.friday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.saturday || '-'"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Danh sách lớp mở -->
+                                <div>
+                                    <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        Danh sách các lớp mở cho môn này
+                                    </h4>
+                                    <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse border border-gray-100">
+                                        <thead>
+                                            <tr class="bg-gray-800 text-white text-xs uppercase">
+                                                <th class="p-3 border border-gray-700">#</th>
+                                                <th class="p-3 border border-gray-700">Lớp HP</th>
+                                                <th class="p-3 border border-gray-700">Thứ 2</th>
+                                                <th class="p-3 border border-gray-700">Thứ 3</th>
+                                                <th class="p-3 border border-gray-700">Thứ 4</th>
+                                                <th class="p-3 border border-gray-700">Thứ 5</th>
+                                                <th class="p-3 border border-gray-700">Thứ 6</th>
+                                                <th class="p-3 border border-gray-700">Thứ 7</th>
+                                                <th class="p-3 border border-gray-700">Giảng viên</th>
+                                                <th class="p-3 border border-gray-700 text-center">Sĩ số</th>
+                                                <th class="p-3 border border-gray-700 text-center">Thao tác</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-gray-100">
-                                            <template x-for="(st, index) in studentList" :key="st.student_code">
-                                                <tr class="hover:bg-blue-50/50">
-                                                    <td class="p-4 pl-6 text-gray-400" x-text="index + 1"></td>
-                                                    <td class="p-4 font-mono font-medium text-blue-600"
-                                                        x-text="st.student_code"></td>
-                                                    <td class="p-4 font-bold text-gray-800 pr-6" x-text="st.full_name">
+                                        <tbody class="text-sm divide-y divide-gray-100">
+                                            <template x-for="(m, idx) in selectedSubject?.modules" :key="m.id">
+                                                <tr :class="m.is_registered ? 'bg-green-50' : 'hover:bg-blue-50/50'">
+                                                    <td class="p-3 border border-gray-100" x-text="idx + 1"></td>
+                                                    <td class="p-3 border border-gray-100 font-bold text-blue-700" x-text="'Lớp ' + (idx + 1)"></td>
+                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.monday || '-'"></td>
+                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.tuesday || '-'"></td>
+                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.wednesday || '-'"></td>
+                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.thursday || '-'"></td>
+                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.friday || '-'"></td>
+                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.saturday || '-'"></td>
+                                                    <td class="p-3 border border-gray-100 font-medium" x-text="m.lecturer"></td>
+                                                    <td class="p-3 border border-gray-100 text-center" x-text="m.current + '/' + m.capacity"></td>
+                                                    <td class="p-3 border border-gray-100 text-center">
+                                                        <template x-if="m.is_registered">
+                                                            <button @click="cancel(m.id)" class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Hủy</button>
+                                                        </template>
+                                                        <template x-if="!m.is_registered">
+                                                            <button @click="register(m.id)" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm" :disabled="m.current >= m.capacity">Chọn</button>
+                                                        </template>
                                                     </td>
-                                                </tr>
-                                            </template>
-                                            <template x-if="studentList.length === 0">
-                                                <tr>
-                                                    <td colspan="3" class="p-12 text-center text-gray-400">Đang tải
-                                                        hoặc lớp trống...</td>
                                                 </tr>
                                             </template>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="p-4 border-t border-gray-100 text-right bg-gray-50">
-                                    <button @click="showModal = false"
-                                        class="px-6 py-2 bg-gray-800 text-white rounded-lg font-bold">Đóng</button>
                                 </div>
                             </div>
                         </div>
@@ -587,148 +632,58 @@
 
                         <div class="divide-y divide-gray-100 mb-8">
                             @forelse($schedules as $schedule)
-                                @php
-                                    $isNew = $schedule->created_at->diffInDays(now()) < 7;
-                                @endphp
                                 <div class="p-6 hover:bg-gray-50/80 transition-colors group">
                                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div class="flex-1">
                                             <div class="flex items-center gap-3 mb-1">
-                                                <h4
-                                                    class="text-lg font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
-                                                    {{ $schedule->title }}
+                                                <h4 class="text-lg font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
+                                                    {{ $schedule->courseModule->subject->subject_name ?? 'N/A' }}
                                                 </h4>
-                                                @if ($isNew)
-                                                    <span
-                                                        class="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Mới</span>
-                                                @endif
+                                                <span class="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Lịch của bạn</span>
                                             </div>
-                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-                                                <div class="flex items-center gap-1.5">
-                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                                        </path>
-                                                    </svg>
-                                                    <span>{{ $schedule->semester->semester_name ?? 'N/A' }}</span>
-                                                </div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    <span>Ngày đăng: {{ $schedule->created_at->format('d/m/Y') }}</span>
-                                                </div>
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 text-sm">
+                                                @if($schedule->monday) <p class="text-gray-600"><strong>Thứ 2:</strong> {{ $schedule->monday }}</p> @endif
+                                                @if($schedule->tuesday) <p class="text-gray-600"><strong>Thứ 3:</strong> {{ $schedule->tuesday }}</p> @endif
+                                                @if($schedule->wednesday) <p class="text-gray-600"><strong>Thứ 4:</strong> {{ $schedule->wednesday }}</p> @endif
+                                                @if($schedule->thursday) <p class="text-gray-600"><strong>Thứ 5:</strong> {{ $schedule->thursday }}</p> @endif
+                                                @if($schedule->friday) <p class="text-gray-600"><strong>Thứ 6:</strong> {{ $schedule->friday }}</p> @endif
+                                                @if($schedule->saturday) <p class="text-gray-600"><strong>Thứ 7:</strong> {{ $schedule->saturday }}</p> @endif
                                             </div>
-                                        </div>
-
-                                        <div class="flex flex-wrap gap-3">
-                                            @if ($schedule->file_path)
-                                                <a href="{{ asset('storage/' . $schedule->file_path) }}" target="_blank"
-                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
-                                                    <svg class="w-4 h-4 text-blue-600" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4">
-                                                        </path>
-                                                    </svg>
-                                                    Tải tệp
-                                                </a>
-                                            @endif
-
-                                            @if ($schedule->drive_link)
-                                                <a href="{{ $schedule->drive_link }}" target="_blank"
-                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
-                                                        </path>
-                                                    </svg>
-                                                    Drive
-                                                </a>
-                                            @endif
                                         </div>
                                     </div>
                                 </div>
                             @empty
-                                <div class="p-12 text-center text-gray-400">Chưa có lịch dành riêng cho bạn.</div>
+                                <div class="p-12 text-center text-gray-400">Bạn chưa có lịch học nào (Vui lòng đăng ký môn học).</div>
                             @endforelse
                         </div>
 
                         <!-- Section: #Khác -->
                         <div class="p-6 border-b border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                            <h3 class="text-xl font-bold text-gray-500">#Khác</h3>
-                            <span class="text-xs text-gray-400 font-medium uppercase tracking-widest">Lịch học các khóa
-                                khác</span>
+                            <h3 class="text-xl font-bold text-gray-500">#Lịch các môn khác</h3>
                         </div>
 
                         <div class="divide-y divide-gray-100 bg-gray-50/30">
                             @forelse($otherSchedules as $schedule)
-                                @php
-                                    $isNew = $schedule->created_at->diffInDays(now()) < 7;
-                                @endphp
                                 <div class="p-5 hover:bg-white transition-colors group">
                                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div class="flex-1">
                                             <div class="flex items-center gap-3 mb-1">
-                                                <h4
-                                                    class="text-base font-bold text-gray-600 group-hover:text-gray-900 transition-colors">
-                                                    {{ $schedule->title }}
+                                                <h4 class="text-base font-bold text-gray-600 group-hover:text-gray-900 transition-colors">
+                                                    {{ $schedule->courseModule->subject->subject_name ?? 'N/A' }}
                                                 </h4>
-                                                <span
-                                                    class="bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
-                                                    Khóa {{ $schedule->academicBatch->start_year ?? 'N/A' }}
+                                                <span class="bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
+                                                    GV: {{ $schedule->courseModule->lecturer->full_name ?? 'N/A' }}
                                                 </span>
-                                                @if ($isNew)
-                                                    <span
-                                                        class="bg-orange-100 text-orange-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase">Mới</span>
-                                                @endif
                                             </div>
-                                            <div class="flex items-center gap-4 text-xs text-gray-400">
-                                                <span>{{ $schedule->semester->semester_name ?? 'N/A' }}</span>
-                                                <span>•</span>
-                                                <span>{{ $schedule->created_at->format('d/m/Y') }}</span>
+                                            <div class="text-xs text-gray-400 mt-1 italic">
+                                                Lịch học dự kiến: 
+                                                {{ collect([$schedule->monday, $schedule->tuesday, $schedule->wednesday, $schedule->thursday, $schedule->friday, $schedule->saturday])->filter()->first() }}...
                                             </div>
-                                        </div>
-
-                                        <div class="flex gap-2">
-                                            @if ($schedule->file_path)
-                                                <a href="{{ asset('storage/' . $schedule->file_path) }}" target="_blank"
-                                                    class="p-2 bg-white border border-gray-200 rounded-lg hover:border-blue-400 transition-colors">
-                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4">
-                                                        </path>
-                                                    </svg>
-                                                </a>
-                                            @endif
-                                            @if ($schedule->drive_link)
-                                                <a href="{{ $schedule->drive_link }}" target="_blank"
-                                                    class="p-2 bg-white border border-gray-200 rounded-lg hover:border-blue-400 transition-colors">
-                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
-                                                        </path>
-                                                    </svg>
-                                                </a>
-                                            @endif
                                         </div>
                                     </div>
                                 </div>
                             @empty
-                                <div class="p-10 text-center text-gray-400 text-sm italic">Không có lịch học nào khác.
-                                </div>
+                                <div class="p-10 text-center text-gray-400 text-sm italic">Không có lịch học nào khác.</div>
                             @endforelse
                         </div>
                     </div>

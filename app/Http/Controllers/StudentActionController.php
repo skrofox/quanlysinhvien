@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 class StudentActionController extends Controller
 {
     /**
-     * Get list of available courses for the current registration period.
+     * Get categorized subjects for registration.
      */
     public function getAvailableCourses()
     {
@@ -23,38 +23,154 @@ class StudentActionController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        // Lấy học kỳ mới nhất (hoặc đang mở đăng ký)
-        $latestSemester = Semester::orderBy('id', 'desc')->first();
-        if (!$latestSemester) {
-            return response()->json([]);
+        $student = $user->student()->with('schoolClass')->first();
+        if (!$student) {
+            return response()->json(['error' => 'Không tìm thấy hồ sơ sinh viên cho tài khoản này.'], 404);
         }
 
-        $courses = CourseModule::with(['subject', 'lecturer'])
+        $schoolClass = $student->schoolClass;
+        if (!$schoolClass || !$schoolClass->department_id) {
+            return response()->json(['error' => 'Sinh viên chưa được gán lớp hoặc khoa. Vui lòng liên hệ quản trị viên.'], 422);
+        }
+
+        $departmentId = $schoolClass->department_id;
+
+        // 1. Lấy tất cả môn học thuộc khoa của sinh viên
+        $subjects = \App\Models\Subject::where('department_id', $departmentId)->get();
+
+        // 2. Lấy học kỳ hiện tại
+        $latestSemester = Semester::orderBy('id', 'desc')->first();
+        if (!$latestSemester) {
+            return response()->json(['error' => 'Hiện không có học kỳ nào đang mở.'], 422);
+        }
+
+        // 3. Lấy tất cả điểm chi tiết của sinh viên
+        $detailedGrades = \App\Models\GradeCourseModule::where('student_id', $student->id)
+            ->with('courseModule.subject')
+            ->get()
+            ->groupBy(fn($item) => $item->courseModule->subject_id);
+
+        // 4. Lấy các lớp học phần đang mở trong kỳ này
+        $activeModules = CourseModule::with(['subject', 'lecturer', 'schedule'])
             ->where('semester_id', $latestSemester->id)
             ->get()
-            ->map(function ($course) use ($user) {
-                // Đếm số lượng sinh viên đã đăng ký cho lớp này
-                $currentEnrollment = CourseRegistration::where('course_module_id', $course->id)->count();
-                
-                // Kiểm tra xem sinh viên hiện tại đã đăng ký chưa
-                $isRegistered = CourseRegistration::where('course_module_id', $course->id)
-                    ->where('student_id', $user->id)
-                    ->exists();
+            ->groupBy('subject_id');
 
-                return [
-                    'id' => $course->id,
-                    'subject_code' => $course->subject->subject_code ?? 'N/A',
-                    'subject_name' => $course->subject->subject_name ?? 'N/A',
-                    'credits' => $course->subject->number_of_credits ?? 0,
-                    'lecturer_name' => $course->lecturer->full_name ?? 'Chưa gán',
-                    'capacity' => $course->number_of_students,
-                    'current_enrollment' => $currentEnrollment,
-                    'is_registered' => $isRegistered,
-                    'is_full' => $currentEnrollment >= $course->number_of_students,
-                ];
+        $categories = [
+            'first_time' => [],
+            'retake' => [],
+            'improvement' => [],
+            'ongoing' => []
+        ];
+
+        foreach ($subjects as $subject) {
+            $subjectGrades = $detailedGrades->get($subject->id, collect());
+            
+            // Tìm bản ghi đang học hoặc mới nhất chưa hoàn thành
+            // "Chưa hoàn thành" = có ít nhất 1 cột null HOẶC chưa chốt
+            $ongoingGrade = $subjectGrades->first(function($g) {
+                return $g->is_finalized == 0 || is_null($g->DCC) || is_null($g->DGK) || is_null($g->DCK);
             });
 
-        return response()->json($courses);
+            // Tìm bản ghi đã hoàn thành tốt nhất (để hiển thị điểm cũ nếu có)
+            $bestFinalizedGrade = $subjectGrades->where('is_finalized', 1)
+                ->whereNotNull('DCC')
+                ->whereNotNull('DGK')
+                ->whereNotNull('DCK')
+                ->sortByDesc(function($g) {
+                    return ($g->DCC * 0.1) + ($g->DGK * 0.3) + ($g->DCK * 0.6);
+                })->first();
+
+            // Lấy Grade tổng quát mới nhất
+            $summaryGrade = Grade::where('student_id', $student->id)
+                ->whereHas('courseModule', fn($q) => $q->where('subject_id', $subject->id))
+                ->orderBy('id', 'desc')
+                ->first();
+
+            $modules = $activeModules->get($subject->id);
+            
+            $data = [
+                'subject_id' => $subject->id,
+                'subject_name' => $subject->subject_name,
+                'subject_code' => $subject->subject_code,
+                'credits' => $subject->number_of_credits,
+                'DCC' => $ongoingGrade ? $ongoingGrade->DCC : ($bestFinalizedGrade ? $bestFinalizedGrade->DCC : null),
+                'DGK' => $ongoingGrade ? $ongoingGrade->DGK : ($bestFinalizedGrade ? $bestFinalizedGrade->DGK : null),
+                'DCK' => $ongoingGrade ? $ongoingGrade->DCK : ($bestFinalizedGrade ? $bestFinalizedGrade->DCK : null),
+                'average_score' => $summaryGrade ? $summaryGrade->average_score : null,
+                'has_modules' => $modules ? $modules->count() > 0 : false,
+                'is_ongoing' => (bool)$ongoingGrade,
+                'modules' => $modules ? $modules->map(function($m) use ($user) {
+                    $reg = CourseRegistration::where('course_module_id', $m->id)
+                        ->where('student_id', $user->id)
+                        ->first();
+                    return [
+                        'id' => $m->id,
+                        'lecturer' => $m->lecturer->full_name ?? 'N/A',
+                        'capacity' => $m->number_of_students,
+                        'current' => CourseRegistration::where('course_module_id', $m->id)->count(),
+                        'is_registered' => (bool)$reg,
+                        'schedule' => $m->schedule ? [
+                            'monday' => $m->schedule->monday,
+                            'tuesday' => $m->schedule->tuesday,
+                            'wednesday' => $m->schedule->wednesday,
+                            'thursday' => $m->schedule->thursday,
+                            'friday' => $m->schedule->friday,
+                            'saturday' => $m->schedule->saturday,
+                        ] : null
+                    ];
+                }) : []
+            ];
+
+            // Phân loại
+            if ($ongoingGrade) {
+                $categories['ongoing'][] = $data;
+            } elseif ($subjectGrades->isEmpty()) {
+                $categories['first_time'][] = $data;
+            } elseif ($summaryGrade && $summaryGrade->average_score < 4.0) {
+                $categories['retake'][] = $data;
+            } elseif ($summaryGrade && $summaryGrade->average_score >= 4.0) {
+                $categories['improvement'][] = $data;
+            } else {
+                $categories['first_time'][] = $data;
+            }
+        }
+
+
+        return response()->json([
+            'categories' => $categories,
+            'current_schedules' => $this->getCurrentSchedules($user)
+        ]);
+    }
+
+    private function getCurrentSchedules($user)
+    {
+        return \App\Models\Schedule::with(['courseModule.subject'])
+            ->whereIn('course_module_id', function($query) use ($user) {
+                $query->select('course_module_id')
+                    ->from('course_registrations')
+                    ->where('student_id', $user->id);
+            })
+            // Chỉ lấy các môn chưa hoàn thành (chưa chốt điểm)
+            ->whereNotExists(function ($query) use ($user) {
+                $query->select(DB::raw(1))
+                    ->from('grade_course_modules')
+                    ->whereColumn('grade_course_modules.course_module_id', 'schedules.course_module_id')
+                    ->where('grade_course_modules.student_id', $user->student->id ?? 0)
+                    ->where('is_finalized', 1);
+            })
+            ->get()
+            ->map(function($s) {
+                return [
+                    'subject_name' => $s->courseModule->subject->subject_name,
+                    'monday' => $s->monday,
+                    'tuesday' => $s->tuesday,
+                    'wednesday' => $s->wednesday,
+                    'thursday' => $s->thursday,
+                    'friday' => $s->friday,
+                    'saturday' => $s->saturday,
+                ];
+            });
     }
 
     /**
@@ -76,7 +192,26 @@ class StudentActionController extends Controller
                 return response()->json(['message' => 'Bạn đã đăng ký lớp học phần này rồi!'], 422);
             }
 
-            // 2. Kiểm tra sĩ số
+            // 2. Kiểm tra xem có đang học môn này (chưa chốt điểm) ở lớp khác không
+            $subjectId = $course->subject_id;
+            $isOngoing = CourseRegistration::where('student_id', $user->id)
+                ->whereHas('courseModule', function($q) use ($subjectId) {
+                    $q->where('subject_id', $subjectId);
+                })
+                ->whereNotExists(function ($query) use ($user) {
+                    $query->select(DB::raw(1))
+                        ->from('grade_course_modules')
+                        ->whereColumn('grade_course_modules.course_module_id', 'course_registrations.course_module_id')
+                        ->where('grade_course_modules.student_id', $user->student->id ?? 0)
+                        ->where('is_finalized', 1);
+                })
+                ->exists();
+
+            if ($isOngoing) {
+                return response()->json(['message' => 'Bạn đang có một lớp học phần của môn này chưa hoàn thành điểm. Không thể đăng ký thêm.'], 422);
+            }
+
+            // 3. Kiểm tra sĩ số
             $currentCount = CourseRegistration::where('course_module_id', $courseId)->count();
             if ($currentCount >= $course->number_of_students) {
                 return response()->json(['message' => 'Lớp học phần này đã đầy sĩ số!'], 422);
@@ -97,8 +232,6 @@ class StudentActionController extends Controller
                     'course_module_id' => $courseId,
                 ], [
                     'attendance_score' => 0,
-                    'midterm_score' => 0,
-                    'final_score' => 0,
                     'status' => 'fail',
                     'average_score' => 0,
                 ]);

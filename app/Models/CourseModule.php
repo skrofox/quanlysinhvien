@@ -43,4 +43,8 @@ class CourseModule extends Model
         return $this->belongsToMany(Student::class, 'grades')
                     ->withPivot('total_score');
     }
+    public function schedule()
+    {
+        return $this->hasOne(Schedule::class);
+    }
 }
