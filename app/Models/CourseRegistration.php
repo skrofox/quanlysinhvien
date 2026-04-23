@@ -10,6 +10,8 @@ class CourseRegistration extends Model
         'student_id',
         'course_module_id',
         'registration_date',
+        'is_registered',
+        'schedule_id',
     ];
 
     public function student()
@@ -20,5 +22,10 @@ class CourseRegistration extends Model
     public function courseModule()
     {
         return $this->belongsTo(CourseModule::class);
+    }
+
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class);
     }
 }

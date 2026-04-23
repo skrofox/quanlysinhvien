@@ -31,7 +31,22 @@ class CourseRegistrationForm
                 Select::make('course_module_id')
                     ->label('Lớp học phần')
                     ->relationship('courseModule', 'id')
-                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->subject->subject_name} ({$record->semester->semester_name} {$record->semester->schoolYear?->range}) - {$record->lecturer->full_name}")
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->subject->subject_name} ({$record->semester->semester_name}) - {$record->lecturer->full_name}")
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->required(),
+                Select::make('schedule_id')
+                    ->label('Lịch học')
+                    ->relationship(
+                        name: 'schedule',
+                        titleAttribute: 'id',
+                        modifyQueryUsing: fn ($query, $get) => $query->when(
+                            $get('course_module_id'),
+                            fn ($q, $moduleId) => $q->where('course_module_id', $moduleId)
+                        )
+                    )
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "T2: {$record->monday} | T3: {$record->tuesday} | T4: {$record->wednesday}...")
                     ->searchable()
                     ->preload()
                     ->required(),
@@ -39,6 +54,9 @@ class CourseRegistrationForm
                     ->label('Ngày đăng ký')
                     ->default(now())
                     ->required(),
+                \Filament\Forms\Components\Toggle::make('is_registered')
+                    ->label('Đã duyệt đăng ký')
+                    ->default(false),
             ]);
     }
 }

@@ -4,21 +4,22 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
     public function up(): void
     {
+        Schema::dropIfExists('schedules');
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->string('file_path')->nullable();
-            $table->string('drive_link')->nullable();
-            $table->foreignId('semester_id')->constrained('semesters')->cascadeOnDelete();
-            $table->foreignId('academic_batch_id')->constrained('academic_batches')->cascadeOnDelete();
-            $table->boolean('is_active')->default(true);
+            $table->foreignId('course_module_id')->constrained()->cascadeOnDelete();
+            $table->string('monday')->nullable();
+            $table->string('tuesday')->nullable();
+            $table->string('wednesday')->nullable();
+            $table->string('thursday')->nullable();
+            $table->string('friday')->nullable();
+            $table->string('saturday')->nullable();
             $table->timestamps();
         });
     }

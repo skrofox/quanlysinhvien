@@ -16,47 +16,41 @@ class ScheduleForm
         return $schema
             ->components([
                 Section::make('Thông tin Lịch học (Schedule)')
-                    ->description('Quản lý các tệp tin lịch học, thời khóa biểu cho từng học kỳ và khóa học.')
+                    ->description('Quản lý thời khóa biểu cho từng lớp học phần.')
                     ->schema([
-                        TextInput::make('title')
-                            ->label('Tên lịch học')
-                            ->placeholder('Ví dụ: TKB Học kỳ 1 - Khóa 2022')
+                        Select::make('course_module_id')
+                            ->label('Lớp học phần')
+                            ->relationship('courseModule', 'id')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->subject->subject_name} - {$record->semester->semester_name} ({$record->semester->schoolYear->start_year} - {$record->semester->schoolYear->end_year}) - {$record->lecturer->full_name}")
                             ->required()
-                            ->maxLength(255)
+                            ->searchable()
+                            ->preload()
                             ->columnSpanFull(),
 
-                        Select::make('semester_id')
-                            ->label('Học kỳ')
-                            ->relationship('semester', 'semester_name')
-                            ->required()
-                            ->searchable()
-                            ->preload(),
-
-                        Select::make('academic_batch_id')
-                            ->label('Khóa học')
-                            ->relationship('academicBatch', 'start_year')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->start_year} - {$record->end_year}")
-                            ->required()
-                            ->searchable()
-                            ->preload(),
-
-                        FileUpload::make('file_path')
-                            ->label('Tệp tin (.xlsx, .xls)')
-                            ->disk('public')
-                            ->directory('schedules')
-                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'])
-                            ->maxSize(10240)
+                        TextInput::make('monday')
+                            ->label('Thứ 2')
+                            ->placeholder('Ví dụ: 07:00 - 09:00, Phòng A101')
                             ->nullable(),
-
-                        TextInput::make('drive_link')
-                            ->label('Link Google Drive')
-                            ->placeholder('https://drive.google.com/...')
-                            ->url()
+                        TextInput::make('tuesday')
+                            ->label('Thứ 3')
+                            ->placeholder('Ví dụ: 07:00 - 09:00, Phòng A101')
                             ->nullable(),
-
-                        Toggle::make('is_active')
-                            ->label('Trạng thái hiển thị')
-                            ->default(true),
+                        TextInput::make('wednesday')
+                            ->label('Thứ 4')
+                            ->placeholder('Ví dụ: 07:00 - 09:00, Phòng A101')
+                            ->nullable(),
+                        TextInput::make('thursday')
+                            ->label('Thứ 5')
+                            ->placeholder('Ví dụ: 07:00 - 09:00, Phòng A101')
+                            ->nullable(),
+                        TextInput::make('friday')
+                            ->label('Thứ 6')
+                            ->placeholder('Ví dụ: 07:00 - 09:00, Phòng A101')
+                            ->nullable(),
+                        TextInput::make('saturday')
+                            ->label('Thứ 7')
+                            ->placeholder('Ví dụ: 07:00 - 09:00, Phòng A101')
+                            ->nullable(),
                     ])->columns(2),
             ]);
     }

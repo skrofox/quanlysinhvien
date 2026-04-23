@@ -16,28 +16,36 @@ class SchedulesTable
     {
         return $table
             ->columns([
-                TextColumn::make('title')
-                    ->label('Tên lịch học')
+                TextColumn::make('courseModule.subject.subject_name')
+                    ->label('Lớp học phần')
+                    ->formatStateUsing(fn ($record) => "{$record->courseModule->subject->subject_name} - {$record->courseModule->semester->semester_name}")
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('semester.semester_name')
-                    ->label('Học kỳ')
-                    ->sortable(),
-
-                TextColumn::make('academicBatch.range')
-                    ->label('Khóa học')
-                    ->sortable(),
-
-                IconColumn::make('is_active')
-                    ->label('Hiển thị')
-                    ->boolean()
-                    ->sortable(),
+                TextColumn::make('monday')
+                    ->label('T2')
+                    ->toggleable(),
+                TextColumn::make('tuesday')
+                    ->label('T3')
+                    ->toggleable(),
+                TextColumn::make('wednesday')
+                    ->label('T4')
+                    ->toggleable(),
+                TextColumn::make('thursday')
+                    ->label('T5')
+                    ->toggleable(),
+                TextColumn::make('friday')
+                    ->label('T6')
+                    ->toggleable(),
+                TextColumn::make('saturday')
+                    ->label('T7')
+                    ->toggleable(),
 
                 TextColumn::make('updated_at')
                     ->label('Ngày cập nhật')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

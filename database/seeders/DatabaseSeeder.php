@@ -51,8 +51,8 @@ class DatabaseSeeder extends Seeder
         echo "3. Đang khởi tạo Khoa...\n";
         // 3. Departments
         $departments = [
-            ['code' => 'CNTT', 'name' => 'Khoa Công nghệ thông tin'],
-            ['code' => 'KT', 'name' => 'Khoa Kinh tế'],
+            ['code' => 'THNN', 'name' => 'Khoa Tin Học Ngoại Ngữ'],
+            ['code' => 'QTKD', 'name' => 'Khoa Quản Trị Kinh Doanh'],
             ['code' => 'NN', 'name' => 'Khoa Ngoại ngữ'],
             ['code' => 'DT', 'name' => 'Khoa Điện tử - Viễn thông'],
             ['code' => 'CK', 'name' => 'Khoa Cơ khí'],
@@ -69,7 +69,7 @@ class DatabaseSeeder extends Seeder
         // 4. AcademicBatch (Khóa học - 4 năm) & SchoolYear (Năm học - 1 năm)
         $academicBatch = AcademicBatch::firstOrCreate(['start_year' => '2022'], ['end_year' => '2026']);
         $schoolYear = SchoolYear::firstOrCreate(['start_year' => '2025'], ['end_year' => '2026']);
-        
+
         $semester1 = Semester::firstOrCreate(['semester_name' => 'Học kỳ 1'], ['school_year_id' => $schoolYear->id]);
         $semester2 = Semester::firstOrCreate(['semester_name' => 'Học kỳ 2'], ['school_year_id' => $schoolYear->id]);
 
@@ -77,7 +77,7 @@ class DatabaseSeeder extends Seeder
         // 5. School Classes & Subjects per Department
         $createdClasses = [];
         $createdSubjects = [];
-        
+
         foreach ($createdDepartments as $dept) {
             // 2 classes per department
             for ($i = 1; $i <= 2; $i++) {
@@ -90,7 +90,7 @@ class DatabaseSeeder extends Seeder
                     ]
                 );
             }
-            
+
             // 5 subjects per department
             for ($i = 1; $i <= 5; $i++) {
                 $createdSubjects[] = Subject::firstOrCreate(
@@ -137,7 +137,6 @@ class DatabaseSeeder extends Seeder
         }
 
         echo "7. Đang tạo 300 Sinh viên...\n";
-        // 7. 300 Students
         $createdStudents = [];
         for ($i = 1; $i <= 300; $i++) {
             $user = User::firstOrCreate(
@@ -151,7 +150,7 @@ class DatabaseSeeder extends Seeder
             $user->assignRole($studentRole);
 
             $class = $faker->randomElement($createdClasses);
-            
+
             $createdStudents[] = Student::firstOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -165,64 +164,88 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        echo "8. Đang khởi tạo Lớp học phần, Đăng ký môn và Nhập điểm...\n";
-        // Lấy tất cả Grade events để vô hiệu hóa boot logic cho nhanh (tùy thuộc, nhưng GradeObserver/booted() tốn query)
-        // Trong Seeder, ta nên bỏ quả những exception validator để DB Seed chạy mượt.
-
+        echo "8. Đang khởi tạo Lớp học phần, Lịch học, Đăng ký và Nhập điểm...\n";
         $semesters = [$semester1, $semester2];
         foreach ($semesters as $sem) {
-            for ($i = 1; $i <= 20; $i++) {
+            for ($i = 1; $i <= 15; $i++) {
                 $subject = $faker->randomElement($createdSubjects);
-                // Chọn giảng viên thuộc cùng khoa với môn học
                 $lecturer = Lecturer::where('department_id', $subject->department_id)->inRandomOrder()->first();
                 
-                if (!$lecturer) continue; // Phòng trường hợp khoa không có GV
+                if (!$lecturer) continue;
                 
+                // 1. Course Module
                 $courseModule = CourseModule::create([
                     'subject_id' => $subject->id,
                     'semester_id' => $sem->id,
                     'lecturer_id' => $lecturer->id,
                     'number_of_students' => $faker->numberBetween(40, 60), 
                 ]);
+
+                // 2. Schedule for this module
+                $schedule = \App\Models\Schedule::create([
+                    'course_module_id' => $courseModule->id,
+                    $faker->randomElement(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']) => $faker->randomElement(['07:00 - 09:00', '09:00 - 11:00', '13:00 - 15:00', '15:00 - 17:00']) . ', Phòng ' . $faker->randomElement(['A101', 'B202', 'C303', 'D404']),
+                ]);
                 
-                // Chọn ngẫu nhiên 30-50 học sinh để đky module này
-                $enrolledStudents = $faker->randomElements($createdStudents, $faker->numberBetween(30, 50));
-                
+                // 3. Registrations & Grades
+                $enrolledStudents = $faker->randomElements($createdStudents, $faker->numberBetween(20, 40));
                 foreach ($enrolledStudents as $student) {
-                    
-                    // Tạo Registration
-                    CourseRegistration::firstOrCreate([
-                        // CourseRegistration liên kết theo id bảng users
+                    // Registration
+                    CourseRegistration::create([
                         'student_id' => $student->user_id, 
                         'course_module_id' => $courseModule->id,
-                    ], [
-                        'registration_date' => Carbon::now()->subDays(rand(10, 30)),
+                        'registration_date' => Carbon::now()->subDays(rand(1, 30)),
+                        'is_registered' => $faker->boolean(80), // 80% đã duyệt
+                        'schedule_id' => $schedule->id,
                     ]);
-                    
-                    // Tạo Điểm (Grade) với logic try catch để bypass Exception trong Model
-                    try {
-                        Grade::firstOrCreate([
-                            // Bảng Grade theo logic lại liên kết với ID bảng Student
-                            'student_id' => $student->id, 
+
+                    // Attempt 1 (L1)
+                    $dcc1 = $faker->randomFloat(1, 7, 10);
+                    $dgk1 = $faker->randomFloat(1, 4, 10);
+                    $dck1 = $faker->randomFloat(1, 3, 10);
+                    $l1_score = round(($dcc1 * 0.1) + ($dgk1 * 0.3) + ($dck1 * 0.6), 1);
+
+                    \App\Models\GradeCourseModule::create([
+                        'student_id' => $student->id,
+                        'course_module_id' => $courseModule->id,
+                        'semester_id' => $sem->id,
+                        'DCC' => $dcc1,
+                        'DGK' => $dgk1,
+                        'DCK' => $dck1,
+                    ]);
+
+                    $l2_score = null;
+                    // Nếu L1 < 5, có 50% khả năng thi lại (L2)
+                    if ($l1_score < 5 && $faker->boolean(50)) {
+                        $dcc2 = $dcc1; // Thường chuyên cần giữ nguyên
+                        $dgk2 = $dgk1; // Giữa kỳ giữ nguyên
+                        $dck2 = $faker->randomFloat(1, 5, 10); // Lần 2 thi tốt hơn
+                        $l2_score = round(($dcc2 * 0.1) + ($dgk2 * 0.3) + ($dck2 * 0.6), 1);
+
+                        \App\Models\GradeCourseModule::create([
+                            'student_id' => $student->id,
                             'course_module_id' => $courseModule->id,
-                        ], [
-                            'attendance_score' => $faker->randomFloat(1, 4, 10),
-                            'midterm_score' => $faker->randomFloat(1, 3, 10),
-                            'final_score' => $faker->randomFloat(1, 3, 10),
-                            'average_score' => 0, // Computed by Observer
-                            'status' => 'pass' // Computed by Observer
+                            'semester_id' => $sem->id, // Có thể là học kỳ sau nhưng để demo ta để cùng HK
+                            'DCC' => $dcc2,
+                            'DGK' => $dgk2,
+                            'DCK' => $dck2,
                         ]);
-                    } catch (\Exception $e) {
-                        // Bỏ qua Exception
                     }
+
+                    // Summary Grade
+                    Grade::create([
+                        'student_id' => $student->id,
+                        'course_module_id' => $courseModule->id,
+                        'academic_batch_id' => $student->schoolClass->academic_batch_id,
+                        'attendance_score' => $dcc1,
+                        'L1' => $l1_score,
+                        'L2' => $l2_score,
+                        'average_score' => max($l1_score, $l2_score ?? 0),
+                        'status' => (max($l1_score, $l2_score ?? 0) >= 5) ? 'pass' : 'fail',
+                    ]);
                 }
             }
         }
-
-        echo "9. Đang khởi tạo Lịch học - Lịch thi...\n";
-        // 9. Schedules
-        $this->call(ScheduleSeeder::class);
-        $this->call(NewsSeeder::class);
 
         echo "\nHOÀN THÀNH SEEDING DỮ LIỆU!!!\n";
         echo "=================================\n";

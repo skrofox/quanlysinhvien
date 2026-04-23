@@ -24,21 +24,31 @@ class GradesTable
                     ->getStateUsing(fn ($record) => $record->courseModule ? "{$record->courseModule->subject->subject_name} - {$record->courseModule->semester->semester_name} - {$record->courseModule->lecturer->full_name}" : '')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('academicBatch.range')
+                    ->label('Khóa học')
+                    ->sortable(),
                 TextColumn::make('attendance_score')
                     ->label('Chuyên cần')
                     ->numeric()
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('L1')
+                    ->label('Lần 1')
                     ->sortable(),
-                TextColumn::make('midterm_score')
-                    ->label('Giữa kỳ')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('final_score')
-                    ->label('Cuối kỳ')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('L2')
+                    ->label('Lần 2')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('L3')
+                    ->label('Lần 3')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('L4')
+                    ->label('Lần 4')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('average_score')
                     ->label('Trung bình')
-                    ->numeric()
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Trạng thái')

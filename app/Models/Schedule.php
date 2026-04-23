@@ -7,21 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Schedule extends Model
 {
     protected $fillable = [
-        'title',
-        'file_path',
-        'drive_link',
-        'semester_id',
-        'academic_batch_id',
-        'is_active',
+        'course_module_id',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
     ];
 
-    public function semester()
+    public function courseModule()
     {
-        return $this->belongsTo(Semester::class);
-    }
-
-    public function academicBatch()
-    {
-        return $this->belongsTo(AcademicBatch::class);
+        return $this->belongsTo(CourseModule::class);
     }
 }

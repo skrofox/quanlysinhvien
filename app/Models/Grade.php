@@ -9,17 +9,29 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class Grade extends Model
 {
     use LogsActivity;
-    protected $fillable = ["student_id", "course_module_id", "attendance_score", "midterm_score", "final_score", "average_score", "status"];
+    protected $fillable = [
+        "student_id", 
+        "course_module_id", 
+        "academic_batch_id",
+        "attendance_score", 
+        "L1", 
+        "L2", 
+        "L3", 
+        "L4", 
+        "average_score", 
+        "status"
+    ];
 
     protected static function booted()
     {
         static::saving(function ($grade) {
-            $attendance = (float) $grade->attendance_score;
-            $midterm = (float) $grade->midterm_score;
-            $final = (float) $grade->final_score;
+            // Logic tính average_score có thể dựa trên điểm L1, L2...
+            // Ở đây ta có thể lấy điểm cao nhất hoặc điểm lần gần nhất
+            $scores = array_filter([$grade->L1, $grade->L2, $grade->L3, $grade->L4], fn($v) => is_numeric($v));
+            if (!empty($scores)) {
+                $grade->average_score = max($scores);
+            }
             
-            // Tính trung bình cộng (có thể thay đổi tỉ lệ tùy trường, VD: chuyên cần 10%, giữa kì 30%, cuối kì 60%)
-            $grade->average_score = round(($attendance + $midterm + $final) / 3, 2);
             $grade->status = $grade->average_score >= 5 ? 'pass' : 'fail';
 
             // Kiểm tra đăng ký môn học
@@ -49,5 +61,14 @@ class Grade extends Model
     public function courseModule()
     {
         return $this->belongsTo(CourseModule::class);
+    }
+    public function academicBatch()
+    {
+        return $this->belongsTo(AcademicBatch::class);
+    }
+    public function detailedGrades()
+    {
+        return $this->hasMany(GradeCourseModule::class, 'student_id', 'student_id')
+            ->where('course_module_id', $this->course_module_id);
     }
 }

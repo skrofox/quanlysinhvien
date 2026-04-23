@@ -59,26 +59,42 @@ class GradeForm
                         },
                     ]),
 
+                Select::make('academic_batch_id')
+                    ->label('Khóa học')
+                    ->relationship('academicBatch', 'start_year')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->start_year} - {$record->end_year}")
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+
                 TextInput::make('attendance_score')
                     ->label('Điểm chuyên cần')
-                    ->required()
                     ->numeric()
                     ->minValue(0)
-                    ->maxValue(10),
-                TextInput::make('midterm_score')
-                    ->label('Điểm giữa kỳ')
-                    ->required()
-                    ->numeric()
-                    ->minValue(0)
-                    ->maxValue(10),
-                TextInput::make('final_score')
-                    ->label('Điểm cuối kỳ')
-                    ->required()
-                    ->numeric()
-                    ->minValue(0)
-                    ->maxValue(10),
+                    ->maxValue(10)
+                    ->nullable(),
+
+                TextInput::make('L1')
+                    ->label('Điểm lần 1')
+                    ->placeholder('A, B, C, D... hoặc 0-10')
+                    ->nullable(),
+                TextInput::make('L2')
+                    ->label('Điểm lần 2')
+                    ->placeholder('A, B, C, D... hoặc 0-10')
+                    ->nullable(),
+                TextInput::make('L3')
+                    ->label('Điểm lần 3')
+                    ->placeholder('A, B, C, D... hoặc 0-10')
+                    ->nullable(),
+                TextInput::make('L4')
+                    ->label('Điểm lần 4')
+                    ->placeholder('A, B, C, D... hoặc 0-10')
+                    ->nullable(),
                 
-                // Status is auto-calculated on save, so we omit it from form.
+                \Filament\Forms\Components\Placeholder::make('average_score_placeholder')
+                    ->label('Điểm trung bình')
+                    ->content(fn ($record) => $record?->average_score ?? 'N/A'),
+                
                 \Filament\Forms\Components\Hidden::make('status')
                     ->default('pass'),
             ]);
