@@ -517,7 +517,15 @@
                                 }
                                 this.loading = false;
                             },
+                            hasSchedule(m) {
+                                return m.schedule && (m.schedule.monday || m.schedule.tuesday || m.schedule.wednesday || m.schedule.thursday || m.schedule.friday || m.schedule.saturday);
+                            },
                             async register(moduleId) {
+                                const mod = this.selectedSubject.modules.find(m => m.id === moduleId);
+                                if (!this.hasSchedule(mod)) {
+                                    alert('Lớp học phần này hiện chưa được xếp thời khóa biểu. Bạn không thể đăng ký lúc này.');
+                                    return;
+                                }
                                 if (!confirm('Xác nhận đăng ký lớp học này?')) return;
                                 const res = await fetch('/sinh-vien/api/register', {
                                     method: 'POST',
@@ -784,9 +792,14 @@
                                                                     class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Hủy</button>
                                                             </template>
                                                             <template x-if="!m.is_registered">
-                                                                <button @click="register(m.id)"
-                                                                    class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm"
-                                                                    :disabled="m.current >= m.capacity">Chọn</button>
+                                                                <div class="flex flex-col items-center gap-1">
+                                                                    <button @click="register(m.id)"
+                                                                        class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                        :disabled="m.current >= m.capacity || !hasSchedule(m)">Chọn</button>
+                                                                    <template x-if="!hasSchedule(m)">
+                                                                        <span class="text-[9px] text-red-500 font-bold leading-none">Chưa có lịch</span>
+                                                                    </template>
+                                                                </div>
                                                             </template>
                                                         </td>
                                                     </tr>
