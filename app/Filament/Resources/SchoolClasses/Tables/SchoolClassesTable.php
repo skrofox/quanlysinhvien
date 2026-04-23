@@ -24,9 +24,9 @@ class SchoolClassesTable
                 TextColumn::make('department.department_name')
                     ->label("Thuộc Khoa")
                     ->sortable(),
-                TextColumn::make('academic_year.start_year')
+                TextColumn::make('academicBatch.start_year')
                     ->label("Năm học")
-                    ->formatStateUsing(fn($record) => $record->academic_year?->range)
+                    ->formatStateUsing(fn($record) => $record->academicBatch?->range)
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()

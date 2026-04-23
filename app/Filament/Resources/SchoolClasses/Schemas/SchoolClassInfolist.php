@@ -16,7 +16,7 @@ class SchoolClassInfolist
                     ->placeholder('-'),
                 TextEntry::make('department.department_name')
                     ->label("Thuộc Khoa"),
-                TextEntry::make('academic_year.range')
+                TextEntry::make('academicBatch.range')
                     ->label("Năm học"),
                 TextEntry::make('created_at')
                     ->dateTime()

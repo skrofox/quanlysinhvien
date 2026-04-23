@@ -62,6 +62,6 @@ class SchoolClassResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['department', 'academic_year']);
+        return parent::getEloquentQuery()->with(['department', 'academicBatch']);
     }
 }

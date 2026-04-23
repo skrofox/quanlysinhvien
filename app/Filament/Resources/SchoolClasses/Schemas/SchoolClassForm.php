@@ -21,9 +21,9 @@ class SchoolClassForm
                     ->label("Khoa")
                     ->relationship("department", "department_name")
                     ->required(),
-                Select::make('academic_year_id')
+                Select::make('academic_batch_id')
                     ->label("Năm học")
-                    ->relationship("academic_year", "start_year")
+                    ->relationship("academicBatch", "start_year")
                     ->getOptionLabelFromRecordUsing(fn($record) => $record->range)
                     ->required()
             ]);
