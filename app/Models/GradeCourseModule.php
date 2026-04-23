@@ -25,7 +25,35 @@ class GradeCourseModule extends Model
                 $model->is_finalized = 0;
             }
         });
+
+        static::saved(function ($model) {
+            if ($model->is_finalized) {
+                $average = ($model->DCC + $model->DGK + ($model->DCK * 2)) / 4;
+                
+                // Update or create summary grade
+                // We'll update attendance_score and set L1 to the calculated average
+                $grade = \App\Models\Grade::where('student_id', $model->student_id)
+                    ->where('course_module_id', $model->course_module_id)
+                    ->first();
+
+                if ($grade) {
+                    $grade->update([
+                        'attendance_score' => $model->DCC,
+                        'L1' => $average
+                    ]);
+                } else {
+                    \App\Models\Grade::create([
+                        'student_id' => $model->student_id,
+                        'course_module_id' => $model->course_module_id,
+                        'attendance_score' => $model->DCC,
+                        'L1' => $average,
+                        'status' => $average >= 4 ? 'pass' : 'fail'
+                    ]);
+                }
+            }
+        });
     }
+
 
 
     public function student()

@@ -78,8 +78,9 @@ class StudentActionController extends Controller
                 ->whereNotNull('DGK')
                 ->whereNotNull('DCK')
                 ->sortByDesc(function($g) {
-                    return ($g->DCC * 0.1) + ($g->DGK * 0.3) + ($g->DCK * 0.6);
+                    return ($g->DCC + $g->DGK + ($g->DCK * 2)) / 4;
                 })->first();
+
 
             // Lấy Grade tổng quát mới nhất
             $summaryGrade = Grade::where('student_id', $student->id)

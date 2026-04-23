@@ -181,24 +181,41 @@
                         <!-- Lịch học hôm nay -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-                                <h4 class="font-bold text-gray-800">Lịch học & thi hôm nay</h4>
+                                <h4 class="font-bold text-gray-800">Lịch học & thi hôm nay (Thứ {{ date('N') + 1 }})</h4>
                                 <button @click="activeTab = 'schedule'"
                                     class="text-sm text-blue-600 font-semibold hover:underline">Xem tất cả</button>
                             </div>
                             <div class="p-0">
                                 <div class="divide-y divide-gray-100">
-                                    <div class="p-5 flex items-start gap-4 hover:bg-blue-50/30 transition-colors">
-                                        <div
-                                            class="w-16 h-16 bg-blue-100 rounded-xl flex flex-col items-center justify-center flex-shrink-0 text-blue-700">
-                                            <span class="text-xs font-bold uppercase">Sáng</span>
-                                            <span class="font-bold">00:00</span>
+                                    @php
+                                        $today = strtolower(date('l'));
+                                        $todaySchedules = $schedules->filter(function ($s) use ($today) {
+                                            return !empty($s->$today);
+                                        });
+                                    @endphp
+                                    @forelse($todaySchedules as $schedule)
+                                        <div class="p-5 flex items-start gap-4 hover:bg-blue-50/30 transition-colors">
+                                            <div
+                                                class="w-16 h-16 bg-blue-100 rounded-xl flex flex-col items-center justify-center flex-shrink-0 text-blue-700">
+                                                <span
+                                                    class="text-[10px] font-bold uppercase">{{ explode(' ', $schedule->$today)[0] }}</span>
+                                                <span
+                                                    class="font-bold">{{ explode(' ', $schedule->$today)[1] ?? '' }}</span>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-bold text-gray-800 text-lg">
+                                                    {{ $schedule->courseModule->subject->subject_name }}</h5>
+                                                <p class="text-gray-500 text-sm mt-1">
+                                                    Phòng:
+                                                    <strong>{{ \Illuminate\Support\Str::after($schedule->$today, 'Phòng ') }}</strong>
+                                                    | GV: {{ $schedule->courseModule->lecturer->full_name }}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h5 class="font-bold text-gray-800 text-lg">Chức năng đang được phát triển</h5>
-                                            <p class="text-gray-500 text-sm mt-1">Phòng: <strong>Null</strong> | GV: Null
-                                            </p>
-                                        </div>
-                                    </div>
+                                    @empty
+                                        <div class="p-10 text-center text-gray-400 italic">Hôm nay bạn không có lịch học.
+                                            Nghỉ ngơi thôi!</div>
+                                    @endforelse
                                 </div>
                             </div>
                         </div>
@@ -309,7 +326,7 @@
                     </div>
 
                     <!-- Tab: Xem điểm -->
-                    <div x-data="{ 
+                    <div x-data="{
                         selectedSemester: 'all',
                         showDetailModal: false,
                         selectedGrade: null
@@ -351,7 +368,8 @@
                                                     'DCC' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->DCC ?? '-',
                                                     'DGK' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->DGK ?? '-',
                                                     'DCK' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->DCK ?? '-',
-                                                    'is_finalized' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->is_finalized ?? 0
+                                                    'is_finalized' =>
+                                                        $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->is_finalized ?? 0,
                                                 ]) }}; showDetailModal = true">
                                                 <td class="p-4 font-medium text-blue-700">
                                                     {{ $grade->courseModule->subject->subject_code ?? 'N/A' }}</td>
@@ -367,15 +385,24 @@
                                                     {{ $grade->average_score }}</td>
                                                 <td class="p-4 text-center">
                                                     @php
-                                                        $detailed = $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first();
-                                                        $isFinalized = ($detailed && ($detailed->is_finalized == 1 || (!is_null($detailed->DCC) && !is_null($detailed->DGK) && !is_null($detailed->DCK))));
+                                                        $detailed = $grade->detailedGrades
+                                                            ->where('course_module_id', $grade->course_module_id)
+                                                            ->first();
+                                                        $isFinalized =
+                                                            $detailed &&
+                                                            ($detailed->is_finalized == 1 ||
+                                                                (!is_null($detailed->DCC) &&
+                                                                    !is_null($detailed->DGK) &&
+                                                                    !is_null($detailed->DCK)));
                                                     @endphp
-                                                    @if($isFinalized)
-                                                        <span class="font-bold px-3 py-1 rounded-lg text-xs uppercase {{ $grade->status == 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                                    @if ($isFinalized)
+                                                        <span
+                                                            class="font-bold px-3 py-1 rounded-lg text-xs uppercase {{ $grade->status == 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
                                                             {{ $grade->status == 'pass' ? 'Đạt' : 'Trượt' }}
                                                         </span>
                                                     @else
-                                                        <span class="font-bold px-3 py-1 rounded-lg text-xs uppercase bg-gray-100 text-gray-500">
+                                                        <span
+                                                            class="font-bold px-3 py-1 rounded-lg text-xs uppercase bg-gray-100 text-gray-500">
                                                             Chưa chốt
                                                         </span>
                                                     @endif
@@ -384,7 +411,8 @@
                                         @endforeach
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="p-4 text-center text-gray-500 py-8">Chưa có kết quả học tập nào.</td>
+                                            <td colspan="9" class="p-4 text-center text-gray-500 py-8">Chưa có kết quả
+                                                học tập nào.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -392,45 +420,69 @@
                         </div>
 
                         <!-- Modal Chi tiết điểm -->
-                        <div x-show="showDetailModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-transition>
-                            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                        <div x-show="showDetailModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;"
+                            x-transition>
+                            <div
+                                class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                                 <div class="fixed inset-0 transition-opacity" @click="showDetailModal = false">
                                     <div class="absolute inset-0 bg-gray-900 opacity-50"></div>
                                 </div>
                                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
-                                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200">
-                                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                                <div
+                                    class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200">
+                                    <div
+                                        class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                                         <h3 class="text-lg font-bold text-gray-800">Chi tiết điểm thành phần</h3>
-                                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600">
-                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        <button @click="showDetailModal = false"
+                                            class="text-gray-400 hover:text-gray-600">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
                                         </button>
                                     </div>
                                     <div class="p-6">
                                         <div class="mb-4">
-                                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Học phần</h4>
-                                            <p class="text-lg font-bold text-blue-700" x-text="selectedGrade?.subject_name"></p>
+                                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Học phần
+                                            </h4>
+                                            <p class="text-lg font-bold text-blue-700"
+                                                x-text="selectedGrade?.subject_name"></p>
                                         </div>
                                         <div class="grid grid-cols-3 gap-4">
                                             <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
-                                                <span class="block text-xs font-bold text-blue-500 uppercase">Chuyên cần</span>
-                                                <span class="text-2xl font-black text-blue-800" x-text="selectedGrade?.DCC"></span>
+                                                <span class="block text-xs font-bold text-blue-500 uppercase">Chuyên
+                                                    cần</span>
+                                                <span class="text-2xl font-black text-blue-800"
+                                                    x-text="selectedGrade?.DCC"></span>
                                             </div>
                                             <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center">
-                                                <span class="block text-xs font-bold text-indigo-500 uppercase">Giữa kỳ</span>
-                                                <span class="text-2xl font-black text-indigo-800" x-text="selectedGrade?.DGK"></span>
+                                                <span class="block text-xs font-bold text-indigo-500 uppercase">Giữa
+                                                    kỳ</span>
+                                                <span class="text-2xl font-black text-indigo-800"
+                                                    x-text="selectedGrade?.DGK"></span>
                                             </div>
                                             <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 text-center">
-                                                <span class="block text-xs font-bold text-purple-500 uppercase">Cuối kỳ</span>
-                                                <span class="text-2xl font-black text-purple-800" x-text="selectedGrade?.DCK"></span>
+                                                <span class="block text-xs font-bold text-purple-500 uppercase">Cuối
+                                                    kỳ</span>
+                                                <span class="text-2xl font-black text-purple-800"
+                                                    x-text="selectedGrade?.DCK"></span>
                                             </div>
                                         </div>
-                                        <div class="mt-6 p-4 rounded-xl border flex items-center justify-between" :class="selectedGrade?.is_finalized || (selectedGrade?.DCC !== '-' && selectedGrade?.DGK !== '-' && selectedGrade?.DCK !== '-') ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-500'">
+                                        <div class="mt-6 p-4 rounded-xl border flex items-center justify-between"
+                                            :class="selectedGrade?.is_finalized || (selectedGrade?.DCC !== '-' &&
+                                                    selectedGrade?.DGK !== '-' && selectedGrade
+                                                    ?.DCK !== '-') ?
+                                                'bg-green-50 border-green-100 text-green-700' :
+                                                'bg-gray-50 border-gray-100 text-gray-500'">
                                             <span class="text-sm font-bold">Trạng thái chốt điểm:</span>
-                                            <span class="font-black uppercase text-xs" x-text="selectedGrade?.is_finalized || (selectedGrade?.DCC !== '-' && selectedGrade?.DGK !== '-' && selectedGrade?.DCK !== '-') ? 'Đã chốt' : 'Chưa chốt'"></span>
+                                            <span class="font-black uppercase text-xs"
+                                                x-text="selectedGrade?.is_finalized || (selectedGrade?.DCC !== '-' && selectedGrade?.DGK !== '-' && selectedGrade?.DCK !== '-') ? 'Đã chốt' : 'Chưa chốt'"></span>
                                         </div>
                                     </div>
                                     <div class="bg-gray-50 px-6 py-4 flex justify-end">
-                                        <button @click="showDetailModal = false" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition">Đóng</button>
+                                        <button @click="showDetailModal = false"
+                                            class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition">Đóng</button>
                                     </div>
                                 </div>
                             </div>
@@ -459,9 +511,9 @@
                                         this.categories = data.categories;
                                         this.currentSchedules = data.current_schedules;
                                     }
-                                } catch (e) { 
+                                } catch (e) {
                                     this.errorMessage = 'Lỗi kết nối máy chủ. Vui lòng thử lại.';
-                                    console.error(e); 
+                                    console.error(e);
                                 }
                                 this.loading = false;
                             },
@@ -504,28 +556,44 @@
                         }" x-init="fetchCategories()">
 
                         <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl flex gap-4">
-                            <div class="text-blue-500 mt-1"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg></div>
+                            <div class="text-blue-500 mt-1"><svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg></div>
                             <div>
                                 <h4 class="font-bold text-blue-800">Kỳ Đăng Ký Học Phần</h4>
-                                <p class="text-blue-600 text-sm mt-1">Danh sách các môn học thuộc khoa của bạn. Vui lòng kiểm tra kỹ lịch học trước khi đăng ký.</p>
+                                <p class="text-blue-600 text-sm mt-1">Danh sách các môn học thuộc khoa của bạn. Vui lòng
+                                    kiểm tra kỹ lịch học trước khi đăng ký.</p>
                             </div>
                         </div>
 
                         <!-- Error Message -->
-                        <div x-show="errorMessage" class="bg-red-50 border border-red-200 p-6 rounded-2xl text-center shadow-sm" style="display: none;">
-                            <div class="text-red-500 mb-2 flex justify-center"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div>
+                        <div x-show="errorMessage"
+                            class="bg-red-50 border border-red-200 p-6 rounded-2xl text-center shadow-sm"
+                            style="display: none;">
+                            <div class="text-red-500 mb-2 flex justify-center"><svg class="w-12 h-12" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                    </path>
+                                </svg></div>
                             <h4 class="font-bold text-red-800 text-lg">Không thể tải dữ liệu</h4>
                             <p class="text-red-600 mt-1" x-text="errorMessage"></p>
-                            <button @click="fetchCategories()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">Thử lại</button>
+                            <button @click="fetchCategories()"
+                                class="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition">Thử
+                                lại</button>
                         </div>
 
                         <div x-show="!showScheduleSelection && !errorMessage" class="space-y-8">
                             <template x-for="(list, type) in categories" :key="type">
-                                <div x-show="type !== 'ongoing'" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                                        <h4 class="font-bold text-gray-800 uppercase text-sm" x-text="type === 'first_time' ? '1. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '2. Danh sách học phần đăng ký học lại' : '3. Danh sách học phần đăng ký học cải thiện')"></h4>
+                                <div x-show="type !== 'ongoing'"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                    <div
+                                        class="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                                        <h4 class="font-bold text-gray-800 uppercase text-sm"
+                                            x-text="type === 'first_time' ? '1. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '2. Danh sách học phần đăng ký học lại' : '3. Danh sách học phần đăng ký học cải thiện')">
+                                        </h4>
                                         <span class="text-xs text-gray-400" x-text="list.length + ' môn'"></span>
                                     </div>
                                     <div class="overflow-x-auto">
@@ -547,8 +615,10 @@
                                                 <template x-for="(subject, index) in list" :key="subject.subject_id">
                                                     <tr class="hover:bg-blue-50/30 transition-colors">
                                                         <td class="p-4 text-gray-400" x-text="index + 1"></td>
-                                                        <td class="p-4 font-medium text-blue-600" x-text="subject.subject_code"></td>
-                                                        <td class="p-4 font-bold text-gray-800" x-text="subject.subject_name"></td>
+                                                        <td class="p-4 font-medium text-blue-600"
+                                                            x-text="subject.subject_code"></td>
+                                                        <td class="p-4 font-bold text-gray-800"
+                                                            x-text="subject.subject_name"></td>
                                                         <td class="p-4 text-center" x-text="subject.credits"></td>
                                                         <td class="p-4 text-center" x-text="subject.L1 ?? '-'"></td>
                                                         <td class="p-4 text-center" x-text="subject.L2 ?? '-'"></td>
@@ -556,20 +626,27 @@
                                                         <td class="p-4 text-center" x-text="subject.L4 ?? '-'"></td>
                                                         <td class="p-4 text-center">
                                                             <template x-if="subject.has_modules">
-                                                                <button @click="openSelection(subject)" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Đăng ký</button>
+                                                                <button @click="openSelection(subject)"
+                                                                    class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Đăng
+                                                                    ký</button>
                                                             </template>
                                                             <template x-if="!subject.has_modules">
-                                                                <span class="bg-gray-100 text-gray-400 px-3 py-1 rounded text-xs font-bold">Chưa mở lớp</span>
+                                                                <span
+                                                                    class="bg-gray-100 text-gray-400 px-3 py-1 rounded text-xs font-bold">Chưa
+                                                                    mở lớp</span>
                                                             </template>
                                                             <template x-if="subject.is_ongoing">
-                                                                <span class="bg-orange-100 text-orange-600 px-3 py-1 rounded text-xs font-bold ml-1">Đang học</span>
+                                                                <span
+                                                                    class="bg-orange-100 text-orange-600 px-3 py-1 rounded text-xs font-bold ml-1">Đang
+                                                                    học</span>
                                                             </template>
                                                         </td>
                                                     </tr>
                                                 </template>
                                                 <template x-if="list.length === 0">
                                                     <tr>
-                                                        <td colspan="9" class="p-8 text-center text-gray-400 italic">Không có môn học nào trong danh mục này.</td>
+                                                        <td colspan="9" class="p-8 text-center text-gray-400 italic">
+                                                            Không có môn học nào trong danh mục này.</td>
                                                     </tr>
                                                 </template>
                                             </tbody>
@@ -577,27 +654,41 @@
                                     </div>
                                 </div>
                             </template>
-                            <div x-show="loading" class="text-center py-20 text-gray-400">Đang tải dữ liệu đăng ký...</div>
+                            <div x-show="loading" class="text-center py-20 text-gray-400">Đang tải dữ liệu đăng ký...
+                            </div>
                         </div>
 
                         <!-- View: Chọn thời khóa biểu -->
-                        <div x-show="showScheduleSelection" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style="display: none;">
+                        <div x-show="showScheduleSelection"
+                            class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+                            style="display: none;">
                             <div class="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800" x-text="'Chọn lớp cho học phần: ' + selectedSubject?.subject_name"></h3>
-                                    <p class="text-sm text-gray-500 mt-1">Vui lòng so sánh lịch học với các môn đã đăng ký để tránh trùng lịch.</p>
+                                    <h3 class="text-xl font-bold text-gray-800"
+                                        x-text="'Chọn lớp cho học phần: ' + selectedSubject?.subject_name"></h3>
+                                    <p class="text-sm text-gray-500 mt-1">Vui lòng so sánh lịch học với các môn đã đăng ký
+                                        để tránh trùng lịch.</p>
                                 </div>
-                                <button @click="showScheduleSelection = false" class="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                <button @click="showScheduleSelection = false"
+                                    class="text-gray-500 hover:text-gray-800 font-bold flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                    </svg>
                                     Quay lại
                                 </button>
                             </div>
-                            
+
                             <div class="p-6 space-y-8">
                                 <!-- So sánh lịch học -->
                                 <div x-show="currentSchedules.length > 0">
                                     <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                            </path>
+                                        </svg>
                                         Thời khóa biểu các môn đã đăng ký (Để so sánh)
                                     </h4>
                                     <div class="overflow-x-auto">
@@ -616,13 +707,20 @@
                                             <tbody class="text-xs">
                                                 <template x-for="s in currentSchedules" :key="s.subject_name">
                                                     <tr>
-                                                        <td class="p-2 border border-orange-100 font-bold" x-text="s.subject_name"></td>
-                                                        <td class="p-2 border border-orange-100" x-text="s.monday || '-'"></td>
-                                                        <td class="p-2 border border-orange-100" x-text="s.tuesday || '-'"></td>
-                                                        <td class="p-2 border border-orange-100" x-text="s.wednesday || '-'"></td>
-                                                        <td class="p-2 border border-orange-100" x-text="s.thursday || '-'"></td>
-                                                        <td class="p-2 border border-orange-100" x-text="s.friday || '-'"></td>
-                                                        <td class="p-2 border border-orange-100" x-text="s.saturday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100 font-bold"
+                                                            x-text="s.subject_name"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.monday || '-'">
+                                                        </td>
+                                                        <td class="p-2 border border-orange-100"
+                                                            x-text="s.tuesday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100"
+                                                            x-text="s.wednesday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100"
+                                                            x-text="s.thursday || '-'"></td>
+                                                        <td class="p-2 border border-orange-100" x-text="s.friday || '-'">
+                                                        </td>
+                                                        <td class="p-2 border border-orange-100"
+                                                            x-text="s.saturday || '-'"></td>
                                                     </tr>
                                                 </template>
                                             </tbody>
@@ -633,122 +731,306 @@
                                 <!-- Danh sách lớp mở -->
                                 <div>
                                     <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
                                         Danh sách các lớp mở cho môn này
                                     </h4>
                                     <div class="overflow-x-auto">
-                                    <table class="w-full text-left border-collapse border border-gray-100">
-                                        <thead>
-                                            <tr class="bg-gray-800 text-white text-xs uppercase">
-                                                <th class="p-3 border border-gray-700">#</th>
-                                                <th class="p-3 border border-gray-700">Lớp HP</th>
-                                                <th class="p-3 border border-gray-700">Thứ 2</th>
-                                                <th class="p-3 border border-gray-700">Thứ 3</th>
-                                                <th class="p-3 border border-gray-700">Thứ 4</th>
-                                                <th class="p-3 border border-gray-700">Thứ 5</th>
-                                                <th class="p-3 border border-gray-700">Thứ 6</th>
-                                                <th class="p-3 border border-gray-700">Thứ 7</th>
-                                                <th class="p-3 border border-gray-700">Giảng viên</th>
-                                                <th class="p-3 border border-gray-700 text-center">Sĩ số</th>
-                                                <th class="p-3 border border-gray-700 text-center">Thao tác</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="text-sm divide-y divide-gray-100">
-                                            <template x-for="(m, idx) in selectedSubject?.modules" :key="m.id">
-                                                <tr :class="m.is_registered ? 'bg-green-50' : 'hover:bg-blue-50/50'">
-                                                    <td class="p-3 border border-gray-100" x-text="idx + 1"></td>
-                                                    <td class="p-3 border border-gray-100 font-bold text-blue-700" x-text="'Lớp ' + (idx + 1)"></td>
-                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.monday || '-'"></td>
-                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.tuesday || '-'"></td>
-                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.wednesday || '-'"></td>
-                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.thursday || '-'"></td>
-                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.friday || '-'"></td>
-                                                    <td class="p-3 border border-gray-100 text-[11px]" x-text="m.schedule?.saturday || '-'"></td>
-                                                    <td class="p-3 border border-gray-100 font-medium" x-text="m.lecturer"></td>
-                                                    <td class="p-3 border border-gray-100 text-center" x-text="m.current + '/' + m.capacity"></td>
-                                                    <td class="p-3 border border-gray-100 text-center">
-                                                        <template x-if="m.is_registered">
-                                                            <button @click="cancel(m.id)" class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Hủy</button>
-                                                        </template>
-                                                        <template x-if="!m.is_registered">
-                                                            <button @click="register(m.id)" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm" :disabled="m.current >= m.capacity">Chọn</button>
-                                                        </template>
-                                                    </td>
+                                        <table class="w-full text-left border-collapse border border-gray-100">
+                                            <thead>
+                                                <tr class="bg-gray-800 text-white text-xs uppercase">
+                                                    <th class="p-3 border border-gray-700">#</th>
+                                                    <th class="p-3 border border-gray-700">Lớp HP</th>
+                                                    <th class="p-3 border border-gray-700">Thứ 2</th>
+                                                    <th class="p-3 border border-gray-700">Thứ 3</th>
+                                                    <th class="p-3 border border-gray-700">Thứ 4</th>
+                                                    <th class="p-3 border border-gray-700">Thứ 5</th>
+                                                    <th class="p-3 border border-gray-700">Thứ 6</th>
+                                                    <th class="p-3 border border-gray-700">Thứ 7</th>
+                                                    <th class="p-3 border border-gray-700">Giảng viên</th>
+                                                    <th class="p-3 border border-gray-700 text-center">Sĩ số</th>
+                                                    <th class="p-3 border border-gray-700 text-center">Thao tác</th>
                                                 </tr>
-                                            </template>
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody class="text-sm divide-y divide-gray-100">
+                                                <template x-for="(m, idx) in selectedSubject?.modules"
+                                                    :key="m.id">
+                                                    <tr :class="m.is_registered ? 'bg-green-50' : 'hover:bg-blue-50/50'">
+                                                        <td class="p-3 border border-gray-100" x-text="idx + 1"></td>
+                                                        <td class="p-3 border border-gray-100 font-bold text-blue-700"
+                                                            x-text="'Lớp ' + (idx + 1)"></td>
+                                                        <td class="p-3 border border-gray-100 text-[11px]"
+                                                            x-text="m.schedule?.monday || '-'"></td>
+                                                        <td class="p-3 border border-gray-100 text-[11px]"
+                                                            x-text="m.schedule?.tuesday || '-'"></td>
+                                                        <td class="p-3 border border-gray-100 text-[11px]"
+                                                            x-text="m.schedule?.wednesday || '-'"></td>
+                                                        <td class="p-3 border border-gray-100 text-[11px]"
+                                                            x-text="m.schedule?.thursday || '-'"></td>
+                                                        <td class="p-3 border border-gray-100 text-[11px]"
+                                                            x-text="m.schedule?.friday || '-'"></td>
+                                                        <td class="p-3 border border-gray-100 text-[11px]"
+                                                            x-text="m.schedule?.saturday || '-'"></td>
+                                                        <td class="p-3 border border-gray-100 font-medium"
+                                                            x-text="m.lecturer"></td>
+                                                        <td class="p-3 border border-gray-100 text-center"
+                                                            x-text="m.current + '/' + m.capacity"></td>
+                                                        <td class="p-3 border border-gray-100 text-center">
+                                                            <template x-if="m.is_registered">
+                                                                <button @click="cancel(m.id)"
+                                                                    class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Hủy</button>
+                                                            </template>
+                                                            <template x-if="!m.is_registered">
+                                                                <button @click="register(m.id)"
+                                                                    class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm"
+                                                                    :disabled="m.current >= m.capacity">Chọn</button>
+                                                            </template>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Tab: Lịch học - Lịch thi -->
-                    <div x-show="activeTab === 'schedule'" style="display: none;"
-                        class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[400px]">
-                        <div class="p-6 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                            <h3 class="text-xl font-bold text-gray-800">Lịch học dành cho bạn</h3>
-                            <div class="flex items-center gap-2 text-sm text-gray-500">
-                                <span class="bg-blue-600 w-2 h-2 rounded-full"></span>
-                                <span>Khóa {{ $user->student->schoolClass->academicBatch->start_year ?? 'N/A' }}</span>
+                    <div x-show="activeTab === 'schedule'" style="display: none;" class="space-y-6">
+                        @if ($schedules->isEmpty())
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+                                <div
+                                    class="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Chưa có lịch học đăng ký</h3>
+                                <p class="text-gray-500 max-w-md mx-auto mb-8">Bạn hiện chưa đăng ký học phần nào trong học
+                                    kỳ này hoặc các lớp học phần bạn đăng ký chưa có lịch cụ thể.</p>
+                                <button @click="activeTab = 'registration'"
+                                    class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                                    Đăng ký học phần ngay
+                                </button>
+                            </div>
+                        @else
+                            <!-- Lịch học theo ngày -->
+                            <div class="grid grid-cols-1 gap-6">
+                                @php
+                                    $days = [
+                                        'monday' => 'Thứ Hai',
+                                        'tuesday' => 'Thứ Ba',
+                                        'wednesday' => 'Thứ Tư',
+                                        'thursday' => 'Thứ Năm',
+                                        'friday' => 'Thứ Sáu',
+                                        'saturday' => 'Thứ Bảy',
+                                    ];
+                                @endphp
+
+                                @foreach ($days as $dayKey => $dayName)
+                                    @php
+                                        $daySchedules = $schedules->filter(fn($s) => !empty($s->$dayKey));
+                                    @endphp
+
+                                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                        <div
+                                            class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                                            <h4
+                                                class="font-black text-gray-700 flex items-center gap-2 uppercase text-sm tracking-widest">
+                                                <span class="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                                {{ $dayName }}
+                                            </h4>
+                                            @if ($daySchedules->count() > 0)
+                                                <span
+                                                    class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                                                    {{ $daySchedules->count() }} môn học
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <div class="divide-y divide-gray-100">
+                                            @forelse($daySchedules as $s)
+                                                <div class="p-5 hover:bg-blue-50/30 transition-colors">
+                                                    <div
+                                                        class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center gap-3 mb-1">
+                                                                <span
+                                                                    class="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                                                                    {{ explode(',', $s->$dayKey)[0] }}
+                                                                </span>
+                                                                <h5 class="text-lg font-bold text-gray-800">
+                                                                    {{ $s->courseModule->subject->subject_name }}
+                                                                </h5>
+                                                            </div>
+                                                            <div class="flex flex-wrap gap-x-6 gap-y-2 mt-2">
+                                                                <div
+                                                                    class="flex items-center gap-1.5 text-sm text-gray-500">
+                                                                    <svg class="w-4 h-4 text-orange-500" fill="none"
+                                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round"
+                                                                            stroke-linejoin="round" stroke-width="2"
+                                                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                                                        </path>
+                                                                        <path stroke-linecap="round"
+                                                                            stroke-linejoin="round" stroke-width="2"
+                                                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                                    </svg>
+                                                                    Phòng: <span
+                                                                        class="font-bold text-gray-700">{{ \Illuminate\Support\Str::after($s->$dayKey, 'Phòng ') }}</span>
+                                                                </div>
+                                                                <div
+                                                                    class="flex items-center gap-1.5 text-sm text-gray-500">
+                                                                    <svg class="w-4 h-4 text-green-500" fill="none"
+                                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round"
+                                                                            stroke-linejoin="round" stroke-width="2"
+                                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                                                        </path>
+                                                                    </svg>
+                                                                    Giảng viên: <span
+                                                                        class="font-medium text-gray-700">{{ $s->courseModule->lecturer->full_name }}</span>
+                                                                </div>
+                                                                <div
+                                                                    class="flex items-center gap-1.5 text-sm text-gray-500">
+                                                                    <svg class="w-4 h-4 text-gray-400" fill="none"
+                                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round"
+                                                                            stroke-linejoin="round" stroke-width="2"
+                                                                            d="M7 7h.01M7 11h.01M7 15h.01M11 7h.01M11 11h.01M11 15h.01M15 7h.01M15 11h.01M15 15h.01">
+                                                                        </path>
+                                                                    </svg>
+                                                                    Mã lớp: <span
+                                                                        class="font-mono text-xs">{{ $s->courseModule->id }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-xs text-gray-400 font-medium">Học kỳ
+                                                                {{ $s->courseModule->semester->semester_name ?? 'Hiện tại' }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                <div class="p-8 text-center text-gray-300 italic text-sm">
+                                                    Không có lịch học trong ngày này
+                                                </div>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <!-- Lịch thi -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="p-6 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
+                                <div class="bg-red-100 p-2 rounded-lg text-red-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-gray-800">Lịch thi học kỳ (chưa làm)</h3>
+                            </div>
+                            <div class="p-0">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="bg-gray-100 text-gray-500 text-[10px] uppercase tracking-wider">
+                                                <th class="p-4 font-bold">Ngày thi</th>
+                                                <th class="p-4 font-bold">Học phần</th>
+                                                <th class="p-4 font-bold text-center">Giờ thi</th>
+                                                <th class="p-4 font-bold text-center">Phòng thi</th>
+                                                <th class="p-4 font-bold text-center">Hình thức</th>
+                                                <th class="p-4 font-bold text-center">SBD</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            {{-- Mock data because no real exam data yet --}}
+                                            @php
+                                                $examModules = $schedules->take(2);
+                                            @endphp
+                                            @forelse($examModules as $idx => $s)
+                                                <tr class="hover:bg-red-50/30 transition-colors">
+                                                    <td class="p-4">
+                                                        <div class="flex flex-col">
+                                                            <span
+                                                                class="font-bold text-gray-800">2{{ $idx + 5 }}/06/2026</span>
+                                                            <span class="text-[10px] text-gray-400">Thứ
+                                                                {{ $idx + 2 }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="p-4">
+                                                        <div class="font-bold text-blue-700">
+                                                            {{ $s->courseModule->subject->subject_name }}</div>
+                                                        <div class="text-[10px] text-gray-400">
+                                                            {{ $s->courseModule->subject->subject_code }}</div>
+                                                    </td>
+                                                    <td class="p-4 text-center font-medium">07:30</td>
+                                                    <td class="p-4 text-center">
+                                                        <span
+                                                            class="bg-gray-100 px-2 py-1 rounded text-xs font-bold text-gray-600">A{{ $idx + 1 }}02</span>
+                                                    </td>
+                                                    <td class="p-4 text-center">
+                                                        <span class="text-xs">Tự luận</span>
+                                                    </td>
+                                                    <td class="p-4 text-center font-black text-red-600">
+                                                        {{ str_pad($idx + 1, 3, '0', STR_PAD_LEFT) }}
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="p-12 text-center text-gray-400 italic">Hiện
+                                                        chưa có lịch thi nào được công bố.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="divide-y divide-gray-100 mb-8">
-                            @forelse($schedules as $schedule)
-                                <div class="p-6 hover:bg-gray-50/80 transition-colors group">
-                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-3 mb-1">
-                                                <h4 class="text-lg font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
-                                                    {{ $schedule->courseModule->subject->subject_name ?? 'N/A' }}
-                                                </h4>
-                                                <span class="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Lịch của bạn</span>
-                                            </div>
-                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 text-sm">
-                                                @if($schedule->monday) <p class="text-gray-600"><strong>Thứ 2:</strong> {{ $schedule->monday }}</p> @endif
-                                                @if($schedule->tuesday) <p class="text-gray-600"><strong>Thứ 3:</strong> {{ $schedule->tuesday }}</p> @endif
-                                                @if($schedule->wednesday) <p class="text-gray-600"><strong>Thứ 4:</strong> {{ $schedule->wednesday }}</p> @endif
-                                                @if($schedule->thursday) <p class="text-gray-600"><strong>Thứ 5:</strong> {{ $schedule->thursday }}</p> @endif
-                                                @if($schedule->friday) <p class="text-gray-600"><strong>Thứ 6:</strong> {{ $schedule->friday }}</p> @endif
-                                                @if($schedule->saturday) <p class="text-gray-600"><strong>Thứ 7:</strong> {{ $schedule->saturday }}</p> @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="p-12 text-center text-gray-400">Bạn chưa có lịch học nào (Vui lòng đăng ký môn học).</div>
-                            @endforelse
-                        </div>
-
-                        <!-- Section: #Khác -->
-                        <div class="p-6 border-b border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                            <h3 class="text-xl font-bold text-gray-500">#Lịch các môn khác</h3>
-                        </div>
-
-                        <div class="divide-y divide-gray-100 bg-gray-50/30">
-                            @forelse($otherSchedules as $schedule)
-                                <div class="p-5 hover:bg-white transition-colors group">
-                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-3 mb-1">
-                                                <h4 class="text-base font-bold text-gray-600 group-hover:text-gray-900 transition-colors">
-                                                    {{ $schedule->courseModule->subject->subject_name ?? 'N/A' }}
-                                                </h4>
-                                                <span class="bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
-                                                    GV: {{ $schedule->courseModule->lecturer->full_name ?? 'N/A' }}
-                                                </span>
-                                            </div>
-                                            <div class="text-xs text-gray-400 mt-1 italic">
-                                                Lịch học dự kiến: 
-                                                {{ collect([$schedule->monday, $schedule->tuesday, $schedule->wednesday, $schedule->thursday, $schedule->friday, $schedule->saturday])->filter()->first() }}...
+                        <!-- #Lịch các môn khác -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                                <h3 class="text-xl font-bold text-gray-500">#Lịch các môn khác đang mở</h3>
+                            </div>
+                            <div class="divide-y divide-gray-100">
+                                @forelse($otherSchedules as $schedule)
+                                    <div class="p-5 hover:bg-gray-50 transition-colors group">
+                                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-3 mb-1">
+                                                    <h4
+                                                        class="text-base font-bold text-gray-600 group-hover:text-gray-900 transition-colors">
+                                                        {{ $schedule->courseModule->subject->subject_name ?? 'N/A' }}
+                                                    </h4>
+                                                    <span
+                                                        class="bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
+                                                        GV: {{ $schedule->courseModule->lecturer->full_name ?? 'N/A' }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs text-gray-400 mt-1 italic">
+                                                    Lịch học dự kiến:
+                                                    {{ collect([$schedule->monday, $schedule->tuesday, $schedule->wednesday, $schedule->thursday, $schedule->friday, $schedule->saturday])->filter()->first() }}...
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @empty
-                                <div class="p-10 text-center text-gray-400 text-sm italic">Không có lịch học nào khác.</div>
-                            @endforelse
+                                @empty
+                                    <div class="p-10 text-center text-gray-400 text-sm italic">Không có lịch học nào khác.
+                                    </div>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
 
