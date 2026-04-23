@@ -72,4 +72,5 @@ Route::view('/phong-ban/cong-tac-sinh-vien', 'phong-ban.cong-tac-sinh-vien')->na
 Route::view('/phong-ban/doan-thanh-nien', 'phong-ban.doan-thanh-nien')->name('phong-ban.doan-thanh-nien');
 Route::view('/phong-ban/trung-tam-tuyen-sinh', 'phong-ban.trung-tam-tuyen-sinh')->name('phong-ban.trung-tam-tuyen-sinh');
 Route::view('/trung-tam/tin-hoc-ngoai-ngu', 'trung-tam.tin-hoc-ngoai-ngu')->name('trung-tam.tin-hoc-ngoai-ngu');
+Route::view('/lien-he', 'lien-he')->name('lien-he');
 

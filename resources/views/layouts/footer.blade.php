@@ -178,7 +178,8 @@
             <div class="flex flex-wrap justify-center gap-6 text-gray-500 font-semibold">
                 <a href="#" class="hover:text-blue-500 transition-colors">Bảo mật</a>
                 <a href="#" class="hover:text-blue-500 transition-colors">Điều khoản</a>
-                <a href="#" class="hover:text-blue-500 transition-colors">Sơ đồ trang</a>
+                <a href="{{ route('lien-he') }}" class="hover:text-blue-500 transition-colors">Sơ đồ trang</a>
+                <a href="{{ route('lien-he') }}" class="hover:text-blue-500 transition-colors">Liên hệ</a>
                 <a href="#" class="hover:text-blue-500 transition-colors">Góp ý</a>
             </div>
         </div>

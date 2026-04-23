@@ -274,7 +274,7 @@
                             class="block py-4 px-5 hover:bg-blue-700/50 transition-colors border-b-4 border-transparent hover:border-blue-400">Sinh
                             viên</a></li>
                 @endif
-                <li><a href="#"
+                <li><a href="{{ route('lien-he') }}"
                         class="block py-4 px-5 hover:bg-blue-700/50 transition-colors border-b-4 border-transparent hover:border-blue-400">Liên
                         hệ</a></li>
             </ul>
