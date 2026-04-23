@@ -94,12 +94,14 @@ class StudentActionController extends Controller
                 'subject_name' => $subject->subject_name,
                 'subject_code' => $subject->subject_code,
                 'credits' => $subject->number_of_credits,
-                'DCC' => $ongoingGrade ? $ongoingGrade->DCC : ($bestFinalizedGrade ? $bestFinalizedGrade->DCC : null),
-                'DGK' => $ongoingGrade ? $ongoingGrade->DGK : ($bestFinalizedGrade ? $bestFinalizedGrade->DGK : null),
-                'DCK' => $ongoingGrade ? $ongoingGrade->DCK : ($bestFinalizedGrade ? $bestFinalizedGrade->DCK : null),
+                'L1' => $summaryGrade ? $summaryGrade->L1 : null,
+                'L2' => $summaryGrade ? $summaryGrade->L2 : null,
+                'L3' => $summaryGrade ? $summaryGrade->L3 : null,
+                'L4' => $summaryGrade ? $summaryGrade->L4 : null,
                 'average_score' => $summaryGrade ? $summaryGrade->average_score : null,
                 'has_modules' => $modules ? $modules->count() > 0 : false,
                 'is_ongoing' => (bool)$ongoingGrade,
+
                 'modules' => $modules ? $modules->map(function($m) use ($user) {
                     $reg = CourseRegistration::where('course_module_id', $m->id)
                         ->where('student_id', $user->id)

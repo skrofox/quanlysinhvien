@@ -16,6 +16,18 @@ class GradeCourseModule extends Model
         'is_finalized',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($model) {
+            if (!is_null($model->DCC) && !is_null($model->DGK) && !is_null($model->DCK)) {
+                $model->is_finalized = 1;
+            } else {
+                $model->is_finalized = 0;
+            }
+        });
+    }
+
+
     public function student()
     {
         return $this->belongsTo(Student::class);

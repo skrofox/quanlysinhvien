@@ -309,7 +309,11 @@
                     </div>
 
                     <!-- Tab: Xem điểm -->
-                    <div x-data="{ selectedSemester: 'all' }" x-show="activeTab === 'grades'" style="display: none;"
+                    <div x-data="{ 
+                        selectedSemester: 'all',
+                        showDetailModal: false,
+                        selectedGrade: null
+                    }" x-show="activeTab === 'grades'" style="display: none;"
                         class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-6 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
                             <h3 class="text-xl font-bold text-gray-800">Kết quả học tập</h3>
@@ -325,54 +329,114 @@
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr class="bg-gray-100 text-gray-500 text-sm uppercase tracking-wider">
-                                        <th class="p-4 font-bold">Mã Học Phần</th>
+                                    <tr class="bg-gray-100 text-gray-500 text-[10px] uppercase tracking-wider">
+                                        <th class="p-4 font-bold">Mã HP</th>
                                         <th class="p-4 font-bold">Tên Môn Học</th>
                                         <th class="p-4 font-bold text-center">STC</th>
-                                        <th class="p-4 font-bold text-center">Điểm Quá Trình</th>
-                                        <th class="p-4 font-bold text-center">Điểm Thi</th>
-                                        <th class="p-4 font-bold text-center">Điểm Hệ 10</th>
-                                        <th class="p-4 font-bold text-center">Điểm Hệ 4</th>
+                                        <th class="p-4 font-bold text-center">L1</th>
+                                        <th class="p-4 font-bold text-center">L2</th>
+                                        <th class="p-4 font-bold text-center">L3</th>
+                                        <th class="p-4 font-bold text-center">L4</th>
+                                        <th class="p-4 font-bold text-center">TB</th>
+                                        <th class="p-4 font-bold text-center">Kết quả</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 text-gray-700">
                                     @forelse($groupedGrades as $semesterId => $gradesList)
                                         @foreach ($gradesList as $grade)
                                             <tr x-show="selectedSemester === 'all' || selectedSemester == '{{ $semesterId }}'"
-                                                class="hover:bg-gray-50">
+                                                class="hover:bg-blue-50 cursor-pointer transition-colors"
+                                                @click="selectedGrade = {{ json_encode([
+                                                    'subject_name' => $grade->courseModule->subject->subject_name,
+                                                    'DCC' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->DCC ?? '-',
+                                                    'DGK' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->DGK ?? '-',
+                                                    'DCK' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->DCK ?? '-',
+                                                    'is_finalized' => $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first()->is_finalized ?? 0
+                                                ]) }}; showDetailModal = true">
                                                 <td class="p-4 font-medium text-blue-700">
                                                     {{ $grade->courseModule->subject->subject_code ?? 'N/A' }}</td>
-                                                <td class="p-4 font-bold">
+                                                <td class="p-4 font-bold text-gray-800">
                                                     {{ $grade->courseModule->subject->subject_name ?? 'N/A' }}</td>
                                                 <td class="p-4 text-center">
                                                     {{ $grade->courseModule->subject->number_of_credits ?? 0 }}</td>
-                                                <td class="p-4 text-center text-sm">
-                                                    <span class="text-gray-400">CC:</span> {{ $grade->attendance_score }}
-                                                </td>
-                                                <td class="p-4 text-center text-sm">
-                                                    <div class="flex flex-col">
-                                                        @if($grade->L1) <span><span class="text-gray-400">L1:</span> {{ $grade->L1 }}</span> @endif
-                                                        @if($grade->L2) <span><span class="text-gray-400">L2:</span> {{ $grade->L2 }}</span> @endif
-                                                    </div>
-                                                </td>
-                                                <td class="p-4 text-center font-extrabold text-gray-800">
+                                                <td class="p-4 text-center font-medium">{{ $grade->L1 ?? '-' }}</td>
+                                                <td class="p-4 text-center font-medium">{{ $grade->L2 ?? '-' }}</td>
+                                                <td class="p-4 text-center font-medium">{{ $grade->L3 ?? '-' }}</td>
+                                                <td class="p-4 text-center font-medium">{{ $grade->L4 ?? '-' }}</td>
+                                                <td class="p-4 text-center font-extrabold text-blue-600">
                                                     {{ $grade->average_score }}</td>
-                                                <td
-                                                    class="p-4 text-center font-bold px-3 py-1 mt-2 inline-block rounded-lg {{ $grade->status == 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                                                    {{ $grade->status == 'pass' ? 'Đạt' : 'Trượt' }}
+                                                <td class="p-4 text-center">
+                                                    @php
+                                                        $detailed = $grade->detailedGrades->where('course_module_id', $grade->course_module_id)->first();
+                                                        $isFinalized = ($detailed && ($detailed->is_finalized == 1 || (!is_null($detailed->DCC) && !is_null($detailed->DGK) && !is_null($detailed->DCK))));
+                                                    @endphp
+                                                    @if($isFinalized)
+                                                        <span class="font-bold px-3 py-1 rounded-lg text-xs uppercase {{ $grade->status == 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                                            {{ $grade->status == 'pass' ? 'Đạt' : 'Trượt' }}
+                                                        </span>
+                                                    @else
+                                                        <span class="font-bold px-3 py-1 rounded-lg text-xs uppercase bg-gray-100 text-gray-500">
+                                                            Chưa chốt
+                                                        </span>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="p-4 text-center text-gray-500 py-8">Chưa có kết quả
-                                                học tập nào rớt vào khung hiển thị.</td>
+                                            <td colspan="9" class="p-4 text-center text-gray-500 py-8">Chưa có kết quả học tập nào.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Modal Chi tiết điểm -->
+                        <div x-show="showDetailModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-transition>
+                            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                                <div class="fixed inset-0 transition-opacity" @click="showDetailModal = false">
+                                    <div class="absolute inset-0 bg-gray-900 opacity-50"></div>
+                                </div>
+                                <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200">
+                                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                                        <h3 class="text-lg font-bold text-gray-800">Chi tiết điểm thành phần</h3>
+                                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
+                                    <div class="p-6">
+                                        <div class="mb-4">
+                                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Học phần</h4>
+                                            <p class="text-lg font-bold text-blue-700" x-text="selectedGrade?.subject_name"></p>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
+                                                <span class="block text-xs font-bold text-blue-500 uppercase">Chuyên cần</span>
+                                                <span class="text-2xl font-black text-blue-800" x-text="selectedGrade?.DCC"></span>
+                                            </div>
+                                            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center">
+                                                <span class="block text-xs font-bold text-indigo-500 uppercase">Giữa kỳ</span>
+                                                <span class="text-2xl font-black text-indigo-800" x-text="selectedGrade?.DGK"></span>
+                                            </div>
+                                            <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 text-center">
+                                                <span class="block text-xs font-bold text-purple-500 uppercase">Cuối kỳ</span>
+                                                <span class="text-2xl font-black text-purple-800" x-text="selectedGrade?.DCK"></span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-6 p-4 rounded-xl border flex items-center justify-between" :class="selectedGrade?.is_finalized || (selectedGrade?.DCC !== '-' && selectedGrade?.DGK !== '-' && selectedGrade?.DCK !== '-') ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-500'">
+                                            <span class="text-sm font-bold">Trạng thái chốt điểm:</span>
+                                            <span class="font-black uppercase text-xs" x-text="selectedGrade?.is_finalized || (selectedGrade?.DCC !== '-' && selectedGrade?.DGK !== '-' && selectedGrade?.DCK !== '-') ? 'Đã chốt' : 'Chưa chốt'"></span>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                                        <button @click="showDetailModal = false" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition">Đóng</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
 
                     <!-- Tab: Đăng ký học phần -->
                     <div x-show="activeTab === 'registration'" style="display: none;" class="space-y-6"
@@ -459,9 +523,9 @@
 
                         <div x-show="!showScheduleSelection && !errorMessage" class="space-y-8">
                             <template x-for="(list, type) in categories" :key="type">
-                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div x-show="type !== 'ongoing'" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div class="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                                        <h4 class="font-bold text-gray-800 uppercase text-sm" x-text="type === 'first_time' ? '1. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '2. Danh sách học phần đăng ký học lại' : (type === 'improvement' ? '3. Danh sách học phần đăng ký học cải thiện' : '4. Danh sách học phần đang học / Thiếu điểm'))"></h4>
+                                        <h4 class="font-bold text-gray-800 uppercase text-sm" x-text="type === 'first_time' ? '1. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '2. Danh sách học phần đăng ký học lại' : '3. Danh sách học phần đăng ký học cải thiện')"></h4>
                                         <span class="text-xs text-gray-400" x-text="list.length + ' môn'"></span>
                                     </div>
                                     <div class="overflow-x-auto">
@@ -472,10 +536,10 @@
                                                     <th class="p-4 font-bold">Mã HP</th>
                                                     <th class="p-4 font-bold">Tên học phần</th>
                                                     <th class="p-4 font-bold text-center">STC</th>
-                                                    <th class="p-4 font-bold text-center">DCC</th>
-                                                    <th class="p-4 font-bold text-center">DGK</th>
-                                                    <th class="p-4 font-bold text-center">DCK</th>
-                                                    <th class="p-4 font-bold text-center">Tổng kết</th>
+                                                    <th class="p-4 font-bold text-center">L1</th>
+                                                    <th class="p-4 font-bold text-center">L2</th>
+                                                    <th class="p-4 font-bold text-center">L3</th>
+                                                    <th class="p-4 font-bold text-center">L4</th>
                                                     <th class="p-4 font-bold text-center">Thao tác</th>
                                                 </tr>
                                             </thead>
@@ -486,10 +550,10 @@
                                                         <td class="p-4 font-medium text-blue-600" x-text="subject.subject_code"></td>
                                                         <td class="p-4 font-bold text-gray-800" x-text="subject.subject_name"></td>
                                                         <td class="p-4 text-center" x-text="subject.credits"></td>
-                                                        <td class="p-4 text-center" x-text="subject.DCC ?? '-'"></td>
-                                                        <td class="p-4 text-center" x-text="subject.DGK ?? '-'"></td>
-                                                        <td class="p-4 text-center" x-text="subject.DCK ?? '-'"></td>
-                                                        <td class="p-4 text-center font-bold" x-text="subject.average_score ?? '-'"></td>
+                                                        <td class="p-4 text-center" x-text="subject.L1 ?? '-'"></td>
+                                                        <td class="p-4 text-center" x-text="subject.L2 ?? '-'"></td>
+                                                        <td class="p-4 text-center" x-text="subject.L3 ?? '-'"></td>
+                                                        <td class="p-4 text-center" x-text="subject.L4 ?? '-'"></td>
                                                         <td class="p-4 text-center">
                                                             <template x-if="subject.has_modules">
                                                                 <button @click="openSelection(subject)" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Đăng ký</button>

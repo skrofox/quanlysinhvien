@@ -43,7 +43,8 @@ class HomeController extends Controller
             'grades' => function($query) use ($user) {
                 $query->whereHas('courseModule.subject', function($q) use ($user) {
                     $q->where('department_id', $user->student->schoolClass->department_id);
-                })->with(['courseModule.subject', 'courseModule.semester']);
+                })->with(['courseModule.subject', 'courseModule.semester', 'detailedGrades']);
+
             },
             'schoolClass.academicBatch'
         ])->first();
@@ -59,11 +60,13 @@ class HomeController extends Controller
             foreach ($student->grades as $grade) {
                 $credits = $grade->courseModule->subject->number_of_credits ?? 0;
 
-                // Môn qua (pass) thì mới được cộng tín chỉ tích lũy
-                if ($grade->status === 'pass' && $grade->average_score >= 4.0) {
+                // Môn qua (pass) thì mới được cộng tín chỉ tích lũy (Chỉ tính khi ĐÃ CHỐT ĐIỂM)
+                $isFinalized = $grade->detailedGrades->where('is_finalized', 1)->isNotEmpty();
+                if ($isFinalized && $grade->status === 'pass' && $grade->average_score >= 4.0) {
                     $totalCredits += $credits;
                     $totalWeightedScore10 += ($grade->average_score * $credits);
                 }
+
             }
 
             // Nhóm danh sách điểm theo semester_id để hiển thị ở view

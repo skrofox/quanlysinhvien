@@ -68,7 +68,7 @@ class Grade extends Model
     }
     public function detailedGrades()
     {
-        return $this->hasMany(GradeCourseModule::class, 'student_id', 'student_id')
-            ->where('course_module_id', $this->course_module_id);
+        return $this->hasMany(GradeCourseModule::class, 'student_id', 'student_id');
     }
+
 }
