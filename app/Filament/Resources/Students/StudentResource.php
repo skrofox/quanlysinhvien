@@ -48,6 +48,10 @@ class StudentResource extends Resource
             //
         ];
     }
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
 
     public static function getPages(): array
     {

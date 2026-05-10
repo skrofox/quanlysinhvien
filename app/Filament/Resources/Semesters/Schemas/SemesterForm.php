@@ -18,7 +18,16 @@ class SemesterForm
                     ->label("Năm học")
                     ->relationship("schoolYear", "start_year")
                     ->getOptionLabelFromRecordUsing(fn($record) => $record->range)
-                    ->required()
+                    ->required(),
+                Select::make('status')
+                    ->label("Trạng thái")
+                    ->options([
+                        'upcoming' => 'Sắp diễn ra',
+                        'ongoing' => 'Đang diễn ra',
+                        'finished' => 'Đã kết thúc',
+                    ])
+                    ->default('upcoming')
+                    ->required(),
             ]);
     }
 }

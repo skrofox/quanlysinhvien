@@ -48,4 +48,5 @@ class Student extends Model
         return $this->belongsToMany(CourseModule::class,'grades')
             ->withPivot('midterm_score','final_score', 'total_score');
     }
+
 }

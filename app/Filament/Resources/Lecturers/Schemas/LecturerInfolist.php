@@ -11,17 +11,23 @@ class LecturerInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('lecturer_code'),
+                TextEntry::make('lecturer_code')
+                ->label('Mã giảng viên'),
                 TextEntry::make('full_name')
+                ->label('Họ và tên')
                     ->placeholder('-'),
                 TextEntry::make('birthday')
+                ->label(('Ngày sinh'))
                     ->date()
                     ->placeholder('-'),
                 TextEntry::make('gender')
+                ->label('Giới tính')
                     ->badge(),
                 TextEntry::make('phone')
+                ->label('Số điện thoại')
                     ->placeholder('-'),
                 TextEntry::make('address')
+                ->label('Địa chỉ')
                     ->placeholder('-'),
                 TextEntry::make('department.department_name')
                     ->label('Khoa')

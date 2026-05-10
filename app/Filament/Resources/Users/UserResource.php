@@ -22,9 +22,8 @@ use UnitEnum;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
-
-    protected static ?string $modelLabel = 'Người dùng';
-    protected static ?string $pluralModelLabel = 'Người dùng';
+    protected static ?string $modelLabel = 'Tài khoản';
+    protected static ?string $pluralModelLabel = 'Tài khoản';
     protected static string|\UnitEnum|null $navigationGroup = 'Hệ thống';
     protected static ?int $navigationSort = 1;
 
@@ -56,7 +55,7 @@ class UserResource extends Resource
     {
         return [
             'index' => ListUsers::route('/'),
-            'create' => CreateUser::route('/create'),
+            // 'create' => CreateUser::route('/create'),
             'view' => ViewUser::route('/{record}'),
             'edit' => EditUser::route('/{record}/edit'),
         ];
@@ -66,6 +65,18 @@ class UserResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('id', '!=', Auth::user()->id);
+    }
+        public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+    public function lecturer()
+    {
+        return $this->hasOne(Lecturer::class);
+    }
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
 }

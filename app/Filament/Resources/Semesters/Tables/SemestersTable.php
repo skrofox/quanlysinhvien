@@ -20,6 +20,20 @@ class SemestersTable
                     ->label('Năm học')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('status')
+                    ->label('Trạng thái')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'upcoming' => 'gray',
+                        'ongoing' => 'success',
+                        'finished' => 'danger',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'upcoming' => 'Sắp diễn ra',
+                        'ongoing' => 'Đang diễn ra',
+                        'finished' => 'Đã kết thúc',
+                    })
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

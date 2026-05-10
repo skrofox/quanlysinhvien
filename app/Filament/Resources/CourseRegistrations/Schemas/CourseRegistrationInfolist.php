@@ -11,12 +11,43 @@ class CourseRegistrationInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('student_id')
+                TextEntry::make('student.student.student_code')
+                    ->label("Mã SV")
                     ->numeric(),
-                TextEntry::make('course_module_id')
+                TextEntry::make('student.name')
+                    ->label("Họ tên")
                     ->numeric(),
-                TextEntry::make('registration_date')
-                    ->dateTime(),
+                TextEntry::make('courseModule.subject.subject_name')
+                    ->label('Môn học')
+                    ->numeric(),
+                    TextEntry::make('schedule.id')
+    ->label('Lịch học')
+    ->formatStateUsing(function ($record) {
+        if (!$record->schedule) return 'N/A';
+
+        $s = $record->schedule;
+
+        $days = [
+            'T2' => $s->monday,
+            'T3' => $s->tuesday,
+            'T4' => $s->wednesday,
+            'T5' => $s->thursday,
+            'T6' => $s->friday,
+            'T7' => $s->saturday,
+            'CN' => $s->sunday,
+        ];
+
+        $result = [];
+
+        foreach ($days as $day => $value) {
+            if (!empty($value)) {
+                $result[] = "$day: $value";
+            }
+        }
+
+        return empty($result) ? 'Không có lịch' : implode('<br>', $result);
+    })
+    ->html(),
                 TextEntry::make('created_at')
                     ->dateTime()
                     ->placeholder('-'),

@@ -12,6 +12,7 @@ class NewsCategoryForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->label('Thể loại tin tức')
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (string $operation, $state, $set) => $operation === 'create' ? $set('slug', \Illuminate\Support\Str::slug($state)) : null),

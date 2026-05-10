@@ -44,7 +44,8 @@ class LecturerActionController extends Controller
                 'credits' => $mod->subject->number_of_credits ?? 0,
                 'capacity' => $mod->capacity,
                 'current_enrollment' => $enrolled,
-                'semester_id' => $mod->semester_id
+                'semester_id' => $mod->semester_id,
+                'is_completed' => (bool)$mod->is_completed
             ];
         });
 
@@ -112,7 +113,8 @@ class LecturerActionController extends Controller
                 'L3' => $grade ? $grade->L3 : null,
                 'L4' => $grade ? $grade->L4 : null,
                 'average_score' => $grade ? $grade->average_score : 0,
-                'status' => $statusText
+                'status' => $statusText,
+                'isComplete' => (bool)$reg->isComplete
             ];
         }
 
@@ -135,6 +137,7 @@ class LecturerActionController extends Controller
             'grades.*.DCC' => 'nullable|numeric|min:0|max:10',
             'grades.*.DGK' => 'nullable|numeric|min:0|max:10',
             'grades.*.DCK' => 'nullable|numeric|min:0|max:10',
+            'grades.*.isComplete' => 'nullable|boolean',
         ]);
 
         $courseId = $request->input('course_id');
@@ -159,52 +162,75 @@ class LecturerActionController extends Controller
                     'course_module_id' => $courseId
                 ]);
 
-                // Nếu đã chốt điểm (finalized), không cho sửa nữa
-                if ($detailedGrade->is_finalized) {
-                    $lockedCount++;
-                    continue;
-                }
-
                 $detailedGrade->DCC = (float)($sg['DCC'] ?? 0);
                 $detailedGrade->DGK = (float)($sg['DGK'] ?? 0);
                 $detailedGrade->DCK = (float)($sg['DCK'] ?? 0);
                 $detailedGrade->semester_id = $module->semester_id;
 
-                // Kiểm tra xem đã nhập đủ 3 cột chưa (giả sử điểm > 0 hoặc được nhập cụ thể)
-                // Vì mặc định là 0, ta có thể coi là "chưa nhập" nếu cả 3 bằng 0, 
-                // nhưng 0 cũng là một mức điểm. 
-                // Ở đây ta sẽ kiểm tra xem các giá trị có được gửi lên đầy đủ không.
-                $isFull = isset($sg['DCC']) && isset($sg['DGK']) && isset($sg['DCK']);
+                // Kiểm tra xem có đánh dấu hoàn thành không
+                $isComplete = $sg['isComplete'] ?? false;
 
-                if ($isFull) {
-                    $detailedGrade->is_finalized = true;
-                }
+                $detailedGrade->is_finalized = $isComplete;
 
                 $detailedGrade->save();
 
-                // Chỉ khi đã chốt điểm mới cập nhật sang bảng Grade (L1-L4)
-                if ($detailedGrade->is_finalized) {
+                // Cập nhật sang bảng Grade (L1-L4) và CourseRegistration
+                // 1. Update CourseRegistration isComplete
+                    $studentUser = Student::find($sg['student_id']);
+                    if ($studentUser) {
+                        CourseRegistration::where('student_id', $studentUser->user_id)
+                            ->where('course_module_id', $courseId)
+                            ->update(['isComplete' => $isComplete]);
+                    }
+
                     // Tính điểm trung bình của lần học này
                     $avg = round(($detailedGrade->DCC * 0.1) + ($detailedGrade->DGK * 0.3) + ($detailedGrade->DCK * 0.6), 1);
 
-                    $grade = Grade::firstOrNew([
-                        'student_id' => $sg['student_id'],
-                        'course_module_id' => $courseId
-                    ]);
+                    $subjectId = $module->subject_id;
+
+                    // Tìm bản ghi Grade DUY NHẤT của sinh viên đối với môn học này
+                    $grade = Grade::where('student_id', $sg['student_id'])
+                        ->whereHas('courseModule', function($q) use ($subjectId) {
+                            $q->where('subject_id', $subjectId);
+                        })->first();
+
+                    if (!$grade) {
+                        $grade = new Grade();
+                        $grade->student_id = $sg['student_id'];
+                    }
+                    
+                    // Cập nhật để luôn trỏ tới lớp học phần mới nhất
+                    $grade->course_module_id = $courseId;
 
                     // Xác định lần học (L1, L2, L3, L4) dựa trên lịch sử đăng ký
-                    $subjectId = $module->subject_id;
-                    $attemptCount = CourseRegistration::where('student_id', Student::find($sg['student_id'])->user_id)
+                    $attemptCount = CourseRegistration::where('student_id', $studentUser->user_id)
                         ->whereHas('courseModule', function($q) use ($subjectId) {
                             $q->where('subject_id', $subjectId);
                         })->count();
 
-                    $column = 'L' . min($attemptCount, 4);
+                    $column = 'L' . min(max($attemptCount, 1), 4);
                     $grade->$column = $avg;
                     $grade->attendance_score = $detailedGrade->DCC;
                     $grade->save();
+
+            }
+
+            // Logic tự động đóng lớp học phần
+            $totalStudents = \App\Models\CourseRegistration::where('course_module_id', $courseId)->count();
+            $completedStudents = \App\Models\CourseRegistration::where('course_module_id', $courseId)
+                ->where('isComplete', true)->count();
+            
+            if ($totalStudents > 0 && $totalStudents === $completedStudents) {
+                $module->is_completed = true;
+                $module->save();
+            } else {
+                // Nếu chưa đủ (ví dụ bỏ tick) thì có thể mở lại lớp tự động
+                if ($module->is_completed) {
+                    $module->is_completed = false;
+                    $module->save();
                 }
             }
+
             DB::commit();
 
             $msg = 'Lưu bảng điểm thành công!';
@@ -265,14 +291,23 @@ class LecturerActionController extends Controller
             ]);
 
             // 2. Create or get Grade (student_id links to students.id)
-            $grade = Grade::firstOrCreate([
-                'student_id' => $student->id,
-                'course_module_id' => $courseId
-            ], [
-                'attendance_score' => 0,
-                'average_score' => 0,
-                'status' => 'pending'
-            ]);
+            $subjectId = $module->subject_id;
+            $existingGrade = Grade::where('student_id', $student->id)
+                ->whereHas('courseModule', function($q) use ($subjectId) {
+                    $q->where('subject_id', $subjectId);
+                })->first();
+
+            if ($existingGrade) {
+                $existingGrade->update(['course_module_id' => $courseId]);
+            } else {
+                Grade::create([
+                    'student_id' => $student->id,
+                    'course_module_id' => $courseId,
+                    'attendance_score' => 0,
+                    'average_score' => 0,
+                    'status' => 'pending'
+                ]);
+            }
 
             DB::commit();
             return response()->json(['message' => 'Thêm sinh viên ' . $student->full_name . ' thành công!']);
@@ -326,5 +361,31 @@ class LecturerActionController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Lỗi xóa sinh viên: ' . $e->getMessage()], 500);
         }
+    }
+    public function toggleCourseCompletion(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('giang_vien') && !$user->hasRole('admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'course_id' => 'required|exists:course_modules,id',
+        ]);
+
+        $module = CourseModule::find($request->course_id);
+        $lecturer = $user->lecturer;
+
+        if ($lecturer && $module->lecturer_id !== $lecturer->id) {
+            return response()->json(['message' => 'Bạn không có quyền thao tác trên lớp này.'], 403);
+        }
+
+        $module->is_completed = !$module->is_completed;
+        $module->save();
+
+        return response()->json([
+            'message' => $module->is_completed ? 'Đã đóng lớp học phần.' : 'Đã mở lại lớp học phần.',
+            'is_completed' => $module->is_completed
+        ]);
     }
 }

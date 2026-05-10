@@ -13,6 +13,7 @@ class NewsCategoriesTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label('Thể loại tin tức')
                     ->searchable(),
                 TextColumn::make('slug')
                     ->searchable(),

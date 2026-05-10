@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class GradeResource extends Resource
 {
@@ -40,6 +41,16 @@ class GradeResource extends Resource
     public static function table(Table $table): Table
     {
         return GradesTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->leftJoin('course_modules', 'grades.course_module_id', '=', 'course_modules.id')
+            ->leftJoin('semesters', 'course_modules.semester_id', '=', 'semesters.id')
+            ->select('grades.*')
+            ->orderByRaw("CASE WHEN semesters.status = 'ongoing' THEN 0 ELSE 1 END")
+            ->orderBy('grades.id', 'desc');
     }
 
     public static function getRelations(): array

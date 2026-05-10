@@ -4,7 +4,9 @@ use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'home'])->name('home');
-
+Route::get('/tram', function () {
+    return view('tram');
+});
 Route::get('sinh-vien', [HomeController::class, 'index'])->name('sinh_vien');
 Route::get('giang-vien', [HomeController::class, 'giang_vien'])->name('giang_vien');
 
@@ -33,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/giang-vien/api/save-grades', [\App\Http\Controllers\LecturerActionController::class, 'saveGrades']);
     Route::post('/giang-vien/api/add-student', [\App\Http\Controllers\LecturerActionController::class, 'addStudentToClass']);
     Route::post('/giang-vien/api/remove-student', [\App\Http\Controllers\LecturerActionController::class, 'removeStudentFromClass']);
+    Route::post('/giang-vien/api/toggle-completion', [\App\Http\Controllers\LecturerActionController::class, 'toggleCourseCompletion']);
 
     // API Đổi mật khẩu chung
     Route::post('/api/change-password', [\App\Http\Controllers\HomeController::class, 'changePassword']);

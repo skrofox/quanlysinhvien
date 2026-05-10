@@ -113,10 +113,10 @@
                                         <p><span class="font-medium text-gray-500 w-32 inline-block">Khoa:</span> <span>Công nghệ Thông tin</span></p>
                                     </div>
                                 </div>
-                                <div x-data="{ 
-                                    currentPassword: '', 
-                                    newPassword: '', 
-                                    confirmPassword: '', 
+                                <div x-data="{
+                                    currentPassword: '',
+                                    newPassword: '',
+                                    confirmPassword: '',
                                     message: '',
                                     success: false,
                                     async submitPassword() {
@@ -173,12 +173,12 @@
 
                     <!-- Tab Grading -->
                     <div x-show="activeTab === 'grading'" class="space-y-6"
-                         x-data="{ 
-                            classes: [], 
-                            loadingClasses: false, 
-                            selectedClass: '', 
+                         x-data="{
+                            classes: [],
+                            loadingClasses: false,
+                            selectedClass: '',
                             studentCodeToAdd: '',
-                            students: [], 
+                            students: [],
                             loadingStudents: false,
                             saving: false,
                             addingStudent: false,
@@ -187,9 +187,14 @@
                                 try {
                                     const res = await fetch('/giang-vien/api/classes?semester_id={{ $latestSemester->id ?? '' }}');
                                     this.classes = await res.json();
-                                    if(this.classes.length > 0) {
-                                        this.selectedClass = this.classes[0].id;
+                                    
+                                    const activeClasses = this.classes.filter(c => !c.is_completed);
+                                    if(activeClasses.length > 0) {
+                                        this.selectedClass = activeClasses[0].id;
                                         this.fetchStudents();
+                                    } else {
+                                        this.selectedClass = '';
+                                        this.students = [];
                                     }
                                 } catch(e) { console.error(e); }
                                 this.loadingClasses = false;
@@ -253,7 +258,8 @@
                                             student_id: s.student_id,
                                             DCC: s.DCC || 0,
                                             DGK: s.DGK || 0,
-                                            DCK: s.DCK || 0
+                                            DCK: s.DCK || 0,
+                                            isComplete: s.isComplete || false
                                         }))
                                     };
                                     const res = await fetch('/giang-vien/api/save-grades', {
@@ -264,8 +270,43 @@
                                     const data = await res.json();
                                     alert(data.message);
                                     this.fetchStudents();
+                                    this.fetchClasses(); // Re-fetch to update is_completed if auto-closed
                                 } catch(e) { console.error(e); alert('Lỗi hệ thống!'); }
                                 this.saving = false;
+                            },
+                            async toggleCompletion() {
+                                if(!this.selectedClass) return;
+                                const cls = this.classes.find(c => c.id == this.selectedClass);
+                                if(!cls) return;
+                                
+                                if(!confirm(cls.is_completed ? 'Bạn muốn mở lại lớp học phần này?' : 'Bạn chắc chắn muốn đóng lớp học phần này?')) return;
+                                
+                                try {
+                                    const res = await fetch('/giang-vien/api/toggle-completion', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                        body: JSON.stringify({ course_id: this.selectedClass })
+                                    });
+                                    const data = await res.json();
+                                    if(res.ok) {
+                                        alert(data.message);
+                                        cls.is_completed = data.is_completed;
+                                        
+                                        // Update selected class if the current one is locked
+                                        if (cls.is_completed) {
+                                            const activeClasses = this.classes.filter(c => !c.is_completed);
+                                            if (activeClasses.length > 0) {
+                                                this.selectedClass = activeClasses[0].id;
+                                                this.fetchStudents();
+                                            } else {
+                                                this.selectedClass = '';
+                                                this.students = [];
+                                            }
+                                        }
+                                    } else {
+                                        alert(data.message || 'Lỗi thao tác!');
+                                    }
+                                } catch(e) { console.error(e); alert('Lỗi hệ thống!'); }
                             },
                             calculateRow(st) {
                                 // Clamp values between 0-10
@@ -275,14 +316,14 @@
                                 });
                                 // Tính điểm TB cho lần học này (L1/L2/L3/L4 tùy đky)
                                 let currentAvg = Math.round(((parseFloat(st.DCC)||0)*0.1 + (parseFloat(st.DGK)||0)*0.3 + (parseFloat(st.DCK)||0)*0.6) * 10) / 10;
-                                
+
                                 // Cập nhật trạng thái hiển thị tạm thời
                                 st.status = currentAvg >= 4 ? 'Đạt' : 'Trượt';
                             }
                          }"
                          x-init="fetchClasses()"
                          x-cloak>
-                        
+
                         <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 w-full">
                             <div class="flex gap-4">
                                 <div class="text-indigo-500 mt-1"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H14"></path></svg></div>
@@ -291,10 +332,26 @@
                                     <p class="text-indigo-600 text-sm mt-1">Nhập điểm thành phần (DCC, DGK, DCK) để hệ thống tự động tính toán lần học.</p>
                                 </div>
                             </div>
-                            <div class="w-full md:w-auto flex flex-col sm:flex-row gap-2">
+                            <div class="w-full md:w-auto flex flex-col sm:flex-row gap-2 items-center">
+                                <template x-if="selectedClass">
+                                    <div class="flex items-center gap-2 mr-2">
+                                        <template x-if="classes.find(c => c.id == selectedClass)?.is_completed">
+                                            <span class="bg-red-100 text-red-700 px-3 py-1.5 rounded text-xs font-bold border border-red-200 whitespace-nowrap">Đã đóng lớp</span>
+                                        </template>
+                                        <template x-if="!classes.find(c => c.id == selectedClass)?.is_completed">
+                                            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs font-bold border border-green-200 whitespace-nowrap">Đang mở</span>
+                                        </template>
+                                        
+                                        <button @click="toggleCompletion()" class="text-xs font-bold px-3 py-1.5 rounded border shadow-sm transition"
+                                            :class="classes.find(c => c.id == selectedClass)?.is_completed ? 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50' : 'bg-red-600 border-red-700 text-white hover:bg-red-700'">
+                                            <span x-text="classes.find(c => c.id == selectedClass)?.is_completed ? 'Mở lại lớp' : 'Khóa lớp'"></span>
+                                        </button>
+                                    </div>
+                                </template>
+
                                 <select x-model="selectedClass" @change="fetchStudents()" class="w-full border-indigo-300 rounded-lg text-sm text-indigo-800 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-bold md:max-w-xs shadow-sm pl-4 pr-10 py-2.5">
                                     <option value="" disabled>-- Chọn lớp học phần --</option>
-                                    <template x-for="cls in classes" :key="cls.id">
+                                    <template x-for="cls in classes.filter(c => !c.is_completed)" :key="cls.id">
                                         <option :value="cls.id" x-text="cls.subject_code + ' - ' + cls.subject_name"></option>
                                     </template>
                                 </select>
@@ -305,7 +362,7 @@
                             <div class="p-6 border-b border-gray-200 bg-gray-50/50">
                                 <h4 class="font-bold text-gray-800 text-lg">Danh sách Sinh viên & Bảng điểm chi tiết</h4>
                             </div>
-                            
+
                             <div class="p-0 overflow-x-auto pb-32">
                                 <div x-show="loadingStudents" class="flex flex-col items-center justify-center py-32">
                                     <svg class="animate-spin h-10 w-10 text-indigo-600 mb-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle><path d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" fill="currentColor" class="opacity-75"></path></svg>
@@ -318,13 +375,10 @@
                                             <th class="p-4 text-center w-12">STT</th>
                                             <th class="p-4">Mã SV</th>
                                             <th class="p-4">Họ và Tên</th>
-                                            <th class="p-4 text-center w-24 bg-blue-50/50">DCC (10%)</th>
-                                            <th class="p-4 text-center w-24 bg-blue-50/50">DGK (30%)</th>
-                                            <th class="p-4 text-center w-24 bg-blue-50/50">DCK (60%)</th>
-                                            <th class="p-4 text-center border-l w-16 text-gray-400">L1</th>
-                                            <th class="p-4 text-center w-16 text-gray-400">L2</th>
-                                            <th class="p-4 text-center w-16 text-gray-400">L3</th>
-                                            <th class="p-4 text-center w-16 text-gray-400">L4</th>
+                                            <th class="p-4 text-center w-24 bg-blue-50/50">DCC</th>
+                                            <th class="p-4 text-center w-24 bg-blue-50/50">DGK</th>
+                                            <th class="p-4 text-center w-24 bg-blue-50/50">DCK</th>
+                                            <th class="p-4 text-center w-24 bg-green-50/50" title="Đánh dấu hoàn thành học phần để chuyển điểm sang điểm tổng kết.">Hoàn thành</th>
                                             <th class="p-4 text-center">TB</th>
                                             <th class="p-4 text-center">TRẠNG THÁI</th>
                                         </tr>
@@ -337,20 +391,23 @@
                                                 <td class="p-4 font-black text-gray-800" x-text="st.full_name"></td>
                                                 <!-- Inputs for components -->
                                                 <td class="p-2 bg-blue-50/20">
-                                                    <input type="number" step="0.1" x-model.number="st.DCC" :disabled="st.is_finalized" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
+                                                    <input type="number" step="0.1" x-model.number="st.DCC" :disabled="st.isComplete" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
                                                 </td>
                                                 <td class="p-2 bg-blue-50/20">
-                                                    <input type="number" step="0.1" x-model.number="st.DGK" :disabled="st.is_finalized" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
+                                                    <input type="number" step="0.1" x-model.number="st.DGK" :disabled="st.isComplete" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
                                                 </td>
                                                 <td class="p-2 bg-blue-50/20">
-                                                    <input type="number" step="0.1" x-model.number="st.DCK" :disabled="st.is_finalized" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
+                                                    <input type="number" step="0.1" x-model.number="st.DCK" :disabled="st.isComplete" @input="calculateRow(st)" class="w-full text-center border-blue-200 rounded p-1 text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400">
+                                                </td>
+                                                <td class="p-4 text-center bg-green-50/20">
+                                                    <input type="checkbox" x-model="st.isComplete" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
                                                 </td>
                                                 <!-- History L1-L4 -->
-                                                <td class="p-4 text-center border-l text-xs text-gray-500" x-text="st.L1 || '-'"></td>
+                                                {{-- <td class="p-4 text-center border-l text-xs text-gray-500" x-text="st.L1 || '-'"></td>
                                                 <td class="p-4 text-center text-xs text-gray-500" x-text="st.L2 || '-'"></td>
                                                 <td class="p-4 text-center text-xs text-gray-500" x-text="st.L3 || '-'"></td>
-                                                <td class="p-4 text-center text-xs text-gray-500" x-text="st.L4 || '-'"></td>
-                                                
+                                                <td class="p-4 text-center text-xs text-gray-500" x-text="st.L4 || '-'"></td> --}}
+
                                                 <td class="p-4 text-center">
                                                     <span class="font-black text-gray-900" x-text="st.average_score"></span>
                                                 </td>

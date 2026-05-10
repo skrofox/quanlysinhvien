@@ -11,21 +11,29 @@ class StudentInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('student_code'),
-                TextEntry::make('full_name'),
+                TextEntry::make('student_code')
+                ->label('Mã sinh viên'),
+                TextEntry::make('full_name')
+                ->label('Họ tên'),
                 TextEntry::make('birthday')
+                ->label('Ngày sinh')
                     ->date()
                     ->placeholder('-'),
                 TextEntry::make('gender')
+                    ->label('Giới tính')
                     ->badge(),
-                TextEntry::make('school_class_id')
+                TextEntry::make('schoolClass.class_code')
+                    ->label('Lớp')
                     ->numeric(),
+                    TextEntry::make('CCCD')
+                    ->label("CCCD/CMND"),
                 TextEntry::make('created_at')
                     ->dateTime()
                     ->placeholder('-'),
                 TextEntry::make('updated_at')
                     ->dateTime()
                     ->placeholder('-'),
+
             ]);
     }
 }

@@ -17,6 +17,8 @@ use Filament\Tables\Table;
 class ScheduleResource extends Resource
 {
     protected static ?string $model = Schedule::class;
+    protected static ?string $modelLabel = 'Thời khóa biểu';
+    protected static ?string $pluralModelLabel = 'Thời khóa biểu';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

@@ -57,6 +57,9 @@ class CourseRegistrationForm
                 \Filament\Forms\Components\Toggle::make('is_registered')
                     ->label('Đã duyệt đăng ký')
                     ->default(false),
+                \Filament\Forms\Components\Toggle::make('isComplete')
+                    ->label('Hoàn thành học phần')
+                    ->default(false),
             ]);
     }
 }

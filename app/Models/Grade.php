@@ -29,7 +29,7 @@ class Grade extends Model
             // Ở đây ta có thể lấy điểm cao nhất hoặc điểm lần gần nhất
             $scores = array_filter([$grade->L1, $grade->L2, $grade->L3, $grade->L4], fn($v) => is_numeric($v));
             if (!empty($scores)) {
-                $grade->average_score = max($scores);
+                $grade->average_score = end($scores); // Lấy điểm của lần học cuối cùng
             }
             
             $grade->status = $grade->average_score >= 5 ? 'pass' : 'fail';

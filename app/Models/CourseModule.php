@@ -12,6 +12,7 @@ class CourseModule extends Model
         "semester_id",
         "lecturer_id",
         "number_of_students",
+        "is_completed",
     ];
 
     public function subject()

@@ -24,6 +24,7 @@ class NewsForm
                         Section::make()
                             ->schema([
                                 TextInput::make('title')
+                                    ->label('Tiêu đề')
                                     ->required()
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(fn(string $operation, $state, $set) => $operation === 'create' ? $set('slug', \Illuminate\Support\Str::slug($state) . '-' . time()) : null),
@@ -33,22 +34,26 @@ class NewsForm
                                     ->required()
                                     ->unique(\App\Models\News::class, 'slug', ignoreRecord: true),
                                 Textarea::make('summary')
+                                    ->label('Tóm tắt')
                                     ->rows(3),
                                 \Filament\Forms\Components\RichEditor::make('content')
+                                    ->label('Nội dung')
                                     ->required()
                                     ->columnSpanFull()
                                     ->fileAttachmentsDisk('public')
-                                    ->fileAttachmentsDirectory('news-content'),
+                                       ->fileAttachmentsDirectory('news-content'),
                             ])
                             ->columnSpan(2),
                         Section::make()
                             ->schema([
                                 \Filament\Forms\Components\Select::make('category_id')
+                                    ->label('Thể loại')
                                     ->relationship('category', 'name')
                                     ->required()
                                     ->searchable()
                                     ->preload(),
                                 \Filament\Forms\Components\Select::make('status')
+                                    ->label("Trạng thái")
                                     ->options([
                                         'published' => 'Công khai',
                                         'draft' => 'Bản nháp',
@@ -58,6 +63,7 @@ class NewsForm
                                 Toggle::make('is_featured')
                                     ->label('Tin nổi bật'),
                                 FileUpload::make('thumbnail')
+                                    ->label('Hình ảnh')
                                     ->image()
                                     ->disk('public')
                                     ->directory('news-thumbnails'),

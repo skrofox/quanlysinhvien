@@ -9,6 +9,7 @@ class Semester extends Model
     protected $fillable = [
         "semester_name",
         "school_year_id",
+        "status",
     ];
 
     public function schoolYear()

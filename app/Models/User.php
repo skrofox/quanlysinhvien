@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Student;
+use App\Models\Lecturer;
 
 class User extends Authenticatable
 {
@@ -69,13 +71,22 @@ class User extends Authenticatable
         return $this->hasMany(CourseRegistration::class, 'student_id');
     }
 
-    public function student()
-    {
-        return $this->hasOne(Student::class, 'user_id');
-    }
+    // public function student()
+    // {
+    //     return $this->hasOne(Student::class, 'user_id');
+    // }
 
-    public function lecturer()
-    {
-        return $this->hasOne(Lecturer::class, 'user_id');
-    }
+    // public function lecturer()
+    // {
+    //     return $this->hasOne(Lecturer::class, 'user_id');
+    // }
+    public function student()
+{
+    return $this->hasOne(Student::class);
+}
+
+public function lecturer()
+{
+    return $this->hasOne(Lecturer::class);
+}
 }

@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CourseModuleResource extends Resource
 {
@@ -40,6 +41,13 @@ class CourseModuleResource extends Resource
     public static function table(Table $table): Table
     {
         return CourseModulesTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->orderByRaw("(SELECT status FROM semesters WHERE semesters.id = course_modules.semester_id) = 'ongoing' DESC")
+            ->orderBy('course_modules.id', 'desc');
     }
 
     public static function getRelations(): array

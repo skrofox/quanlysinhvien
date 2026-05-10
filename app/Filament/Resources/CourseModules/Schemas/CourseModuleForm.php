@@ -13,15 +13,10 @@ class CourseModuleForm
         return $schema
             ->components([
                 Select::make('subject_id')
+                    ->label('Môn học')
                     ->relationship(
                         name: "subject",
-                        titleAttribute: "subject_name",
-                        modifyQueryUsing: fn ($query, $component) => $query->whereDoesntHave('courseModules', function ($q) use ($component) {
-                            $record = $component->getRecord();
-                            if ($record) {
-                                $q->where('id', '!=', $record->id);
-                            }
-                        })
+                        titleAttribute: "subject_name"
                     )
                     ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->subject_name} ({$record->subject_code})")
                     ->required()
@@ -31,31 +26,11 @@ class CourseModuleForm
                     ->label('Học kỳ')
                     ->relationship("semester", "semester_name")
                     ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->semester_name} ({$record->schoolYear?->start_year} - {$record->schoolYear?->end_year})")
+                    ->default(fn () => \App\Models\Semester::where('status', 'ongoing')->value('id'))
                     ->required()
-                    ->preload()
-                    ->rules([
-                        fn ($get) => function (string $attribute, $value, $fail) use ($get) {
-                            $subjectId = $get('subject_id');
-                            if (!$subjectId || !$value) return;
-
-                            $semester = \App\Models\Semester::find($value);
-                            if (!$semester) return;
-
-                            $schoolYearId = $semester->school_year_id;
-
-                            $exists = \App\Models\CourseModule::where('subject_id', $subjectId)
-                                ->whereHas('semester', function ($query) use ($schoolYearId) {
-                                    $query->where('school_year_id', $schoolYearId);
-                                })
-                                ->when($get('../../id'), fn ($query, $id) => $query->where('id', '!=', $id))
-                                ->exists();
-
-                            if ($exists) {
-                                $fail('Môn học này đã được mở lớp trong một học kỳ khác thuộc cùng năm học.');
-                            }
-                        },
-                    ]),
+                    ->preload(),
                 Select::make('lecturer_id')
+                    ->label('Giảng viên')
                     ->relationship(
                         name: 'lecturer',
                         titleAttribute: 'full_name',
@@ -70,11 +45,16 @@ class CourseModuleForm
                     ->searchable()
                     ->preload(),
                 TextInput::make('number_of_students')
+                    ->label('Số lượng sinh viên')
                     ->required()
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
                     ->default(0),
+                \Filament\Forms\Components\Toggle::make('is_completed')
+                    ->label('Đã đóng (Hoàn thành)')
+                    ->default(false)
+                    ->inline(false),
             ]);
     }
 }

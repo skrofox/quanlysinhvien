@@ -58,4 +58,8 @@ class LecturerResource extends Resource
             'edit' => EditLecturer::route('/{record}/edit'),
         ];
     }
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
 }

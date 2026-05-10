@@ -11,6 +11,7 @@ class CourseRegistration extends Model
         'course_module_id',
         'registration_date',
         'is_registered',
+        'isComplete',
         'schedule_id',
     ];
 

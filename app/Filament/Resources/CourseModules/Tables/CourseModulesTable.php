@@ -21,6 +21,8 @@ class CourseModulesTable
                     ->searchable(),
                 TextColumn::make('semester.semester_name')
                     ->label('Học kỳ')
+                    ->badge()
+                    ->color(fn ($record): string => $record->semester->status === 'ongoing' ? 'success' : 'gray')
                     ->sortable(),
                 TextColumn::make('semester.schoolYear.range')
                     ->label('Năm học')
@@ -41,6 +43,9 @@ class CourseModulesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                \Filament\Tables\Columns\ToggleColumn::make('is_completed')
+                    ->label('Đã đóng')
+                    ->sortable(),
             ])
             ->filters([
                 //

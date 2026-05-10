@@ -20,7 +20,7 @@
                     </div>
                 </div>
                 <div class="mt-4 md:mt-0 flex gap-3">
-                    <button
+                    <!-- <button
                         class="bg-white border hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors text-sm flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -28,7 +28,7 @@
                             </path>
                         </svg>
                         Thông báo
-                    </button>
+                    </button> -->
                     <form method="POST" action="{{ route('logout') ?? '#' }}" x-data>
                         @csrf
                         <button type="submit"
@@ -109,7 +109,7 @@
                                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                                     </path>
                                 </svg>
-                                Lịch học - Lịch thi
+                                Lịch học
                             </a>
                             <a href="#" @click.prevent="activeTab = 'tuition'"
                                 :class="{ 'bg-blue-50 text-blue-700': activeTab === 'tuition', 'text-gray-600 hover:bg-gray-50': activeTab !== 'tuition' }"
@@ -493,12 +493,28 @@
                     <!-- Tab: Đăng ký học phần -->
                     <div x-show="activeTab === 'registration'" style="display: none;" class="space-y-6"
                         x-data="{
-                            categories: { first_time: [], retake: [], improvement: [], ongoing: [] },
-                            currentSchedules: [],
-                            loading: true,
-                            errorMessage: '',
-                            selectedSubject: null,
                             showScheduleSelection: false,
+                            showStudentListModal: false,
+                            classmates: [],
+                            currentClassInfo: null,
+                            loadingClassmates: false,
+                            async fetchClassmates(moduleId) {
+                                if (!moduleId) return;
+                                this.loadingClassmates = true;
+                                this.showStudentListModal = true;
+                                this.classmates = [];
+                                this.currentClassInfo = null;
+                                try {
+                                    const res = await fetch(`/sinh-vien/api/course-students/${moduleId}`);
+                                    const data = await res.json();
+                                    this.classmates = data.students;
+                                    this.currentClassInfo = data.module;
+                                } catch (e) {
+                                    console.error(e);
+                                    alert('Không thể tải danh sách sinh viên.');
+                                }
+                                this.loadingClassmates = false;
+                            },
                             async fetchCategories() {
                                 this.loading = true;
                                 this.errorMessage = '';
@@ -595,12 +611,11 @@
 
                         <div x-show="!showScheduleSelection && !errorMessage" class="space-y-8">
                             <template x-for="(list, type) in categories" :key="type">
-                                <div x-show="type !== 'ongoing'"
-                                    class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div
                                         class="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
                                         <h4 class="font-bold text-gray-800 uppercase text-sm"
-                                            x-text="type === 'first_time' ? '1. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '2. Danh sách học phần đăng ký học lại' : '3. Danh sách học phần đăng ký học cải thiện')">
+                                            x-text="type === 'ongoing' ? '1. Danh sách học phần đang học' : (type === 'first_time' ? '2. Danh sách học phần đăng ký học lần đầu' : (type === 'retake' ? '3. Danh sách học phần đăng ký học lại' : '4. Danh sách học phần đăng ký học cải thiện'))">
                                         </h4>
                                         <span class="text-xs text-gray-400" x-text="list.length + ' môn'"></span>
                                     </div>
@@ -633,20 +648,30 @@
                                                         <td class="p-4 text-center" x-text="subject.L3 ?? '-'"></td>
                                                         <td class="p-4 text-center" x-text="subject.L4 ?? '-'"></td>
                                                         <td class="p-4 text-center">
-                                                            <template x-if="subject.has_modules">
-                                                                <button @click="openSelection(subject)"
-                                                                    class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Đăng
-                                                                    ký</button>
+                                                            <template x-if="type === 'ongoing'">
+                                                                <button @click="fetchClassmates(subject.modules.find(m => m.is_registered)?.id)"
+                                                                    class="bg-orange-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-orange-700 transition shadow-sm">
+                                                                    Danh sách lớp
+                                                                </button>
                                                             </template>
-                                                            <template x-if="!subject.has_modules">
-                                                                <span
-                                                                    class="bg-gray-100 text-gray-400 px-3 py-1 rounded text-xs font-bold">Chưa
-                                                                    mở lớp</span>
-                                                            </template>
-                                                            <template x-if="subject.is_ongoing">
-                                                                <span
-                                                                    class="bg-orange-100 text-orange-600 px-3 py-1 rounded text-xs font-bold ml-1">Đang
-                                                                    học</span>
+                                                            <template x-if="type !== 'ongoing'">
+                                                                <div class="flex items-center justify-center gap-2">
+                                                                    <template x-if="subject.has_modules">
+                                                                        <button @click="openSelection(subject)"
+                                                                            class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Đăng
+                                                                            ký</button>
+                                                                    </template>
+                                                                    <template x-if="!subject.has_modules">
+                                                                        <span
+                                                                            class="bg-gray-100 text-gray-400 px-3 py-1 rounded text-xs font-bold">Chưa
+                                                                            mở lớp</span>
+                                                                    </template>
+                                                                    <template x-if="subject.is_ongoing">
+                                                                        <span
+                                                                            class="bg-orange-100 text-orange-600 px-3 py-1 rounded text-xs font-bold">Đang
+                                                                            học</span>
+                                                                    </template>
+                                                                </div>
                                                             </template>
                                                         </td>
                                                     </tr>
@@ -663,6 +688,73 @@
                                 </div>
                             </template>
                             <div x-show="loading" class="text-center py-20 text-gray-400">Đang tải dữ liệu đăng ký...
+                            </div>
+                        </div>
+
+                        <!-- Modal: Danh sách sinh viên trong lớp -->
+                        <div x-show="showStudentListModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-transition>
+                            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                                <div class="fixed inset-0 transition-opacity" @click="showStudentListModal = false">
+                                    <div class="absolute inset-0 bg-gray-900 opacity-50"></div>
+                                </div>
+                                <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200">
+                                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                                        <h3 class="text-lg font-bold text-gray-800">Danh sách sinh viên trong lớp</h3>
+                                        <button @click="showStudentListModal = false" class="text-gray-400 hover:text-gray-600">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="p-6 border-b border-gray-100 bg-blue-50/30 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Môn học</p>
+                                            <p class="font-bold text-gray-800" x-text="currentClassInfo?.subject_name"></p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Giảng viên hướng dẫn</p>
+                                            <p class="font-bold text-gray-800" x-text="currentClassInfo?.lecturer_name"></p>
+                                        </div>
+                                    </div>
+                                    <div class="p-0 max-h-[60vh] overflow-y-auto">
+                                        <div x-show="loadingClassmates" class="p-10 text-center text-gray-400">
+                                            <svg class="animate-spin h-8 w-8 mx-auto mb-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Đang tải danh sách...
+                                        </div>
+                                        <table x-show="!loadingClassmates" class="w-full text-left border-collapse">
+                                            <thead class="sticky top-0 bg-gray-100 shadow-sm">
+                                                <tr class="text-gray-500 text-[10px] uppercase tracking-wider">
+                                                    <th class="p-4 font-bold">STT</th>
+                                                    <th class="p-4 font-bold">MSSV</th>
+                                                    <th class="p-4 font-bold">Họ và tên</th>
+                                                    <th class="p-4 font-bold">Lớp</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200">
+                                                <template x-for="(student, index) in classmates" :key="student.student_code">
+                                                    <tr class="hover:bg-gray-50">
+                                                        <td class="p-4 text-sm text-gray-500" x-text="index + 1"></td>
+                                                        <td class="p-4 text-sm font-bold text-blue-600" x-text="student.student_code"></td>
+                                                        <td class="p-4 text-sm font-medium text-gray-800" x-text="student.full_name"></td>
+                                                        <td class="p-4 text-sm text-gray-600" x-text="student.class_name"></td>
+                                                    </tr>
+                                                </template>
+                                                <template x-if="classmates.length === 0 && !loadingClassmates">
+                                                    <tr>
+                                                        <td colspan="4" class="p-10 text-center text-gray-400 italic">Không có sinh viên nào trong lớp này.</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                                        <button @click="showStudentListModal = false" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition">Đóng</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -737,7 +829,11 @@
                                 </div>
 
                                 <!-- Danh sách lớp mở -->
-                                <div>
+                                <div x-data="{
+                                    get availableModules() {
+                                        return (selectedSubject?.modules || []).filter(m => !m.isComplete);
+                                    }
+                                }">
                                     <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
                                         <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -746,7 +842,14 @@
                                         </svg>
                                         Danh sách các lớp mở cho môn này
                                     </h4>
-                                    <div class="overflow-x-auto">
+
+                                    <template x-if="availableModules.length === 0">
+                                        <div class="p-6 bg-gray-50 border border-gray-200 rounded-xl text-center text-gray-500 italic">
+                                            Hiện tại chưa có lớp học phần mới nào đang mở cho môn học này.
+                                        </div>
+                                    </template>
+
+                                    <div class="overflow-x-auto" x-show="availableModules.length > 0">
                                         <table class="w-full text-left border-collapse border border-gray-100">
                                             <thead>
                                                 <tr class="bg-gray-800 text-white text-xs uppercase">
@@ -764,8 +867,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody class="text-sm divide-y divide-gray-100">
-                                                <template x-for="(m, idx) in selectedSubject?.modules"
-                                                    :key="m.id">
+                                                <template x-for="(m, idx) in availableModules" :key="m.id">
                                                     <tr :class="m.is_registered ? 'bg-green-50' : 'hover:bg-blue-50/50'">
                                                         <td class="p-3 border border-gray-100" x-text="idx + 1"></td>
                                                         <td class="p-3 border border-gray-100 font-bold text-blue-700"
@@ -788,8 +890,15 @@
                                                             x-text="m.current + '/' + m.capacity"></td>
                                                         <td class="p-3 border border-gray-100 text-center">
                                                             <template x-if="m.is_registered">
-                                                                <button @click="cancel(m.id)"
-                                                                    class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Hủy</button>
+                                                                <div class="flex justify-center">
+                                                                    <template x-if="m.isComplete">
+                                                                        <span class="bg-gray-100 text-green-700 px-3 py-1 rounded text-xs font-bold border border-green-200">Đã hoàn thành</span>
+                                                                    </template>
+                                                                    <template x-if="!m.isComplete">
+                                                                        <button @click="cancel(m.id)"
+                                                                            class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm hover:bg-red-700 transition">Hủy</button>
+                                                                    </template>
+                                                                </div>
                                                             </template>
                                                             <template x-if="!m.is_registered">
                                                                 <div class="flex flex-col items-center gap-1">
@@ -943,7 +1052,7 @@
                         @endif
 
                         <!-- Lịch thi -->
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <!-- <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="p-6 border-b border-gray-200 bg-gray-50/50 flex items-center gap-3">
                                 <div class="bg-red-100 p-2 rounded-lg text-red-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1010,7 +1119,7 @@
                                     </table>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
 
                         <!-- #Lịch các môn khác -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1047,7 +1156,7 @@
                         </div>
                     </div>
 
-                    <!-- Tab: Học phí -->
+                    Tab: Học phí
                     <div x-show="activeTab === 'tuition'" style="display: none;"
                         class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-6 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">

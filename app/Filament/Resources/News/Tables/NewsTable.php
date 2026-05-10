@@ -43,10 +43,10 @@ class NewsTable
                     ->label('Lượt xem')
                     ->numeric()
                     ->sortable(),
-                TextColumn::make('published_at')
-                    ->label('Ngày đăng')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                // TextColumn::make('published_at')
+                //     ->label('Ngày đăng')
+                //     ->dateTime('d/m/Y H:i')
+                //     ->sortable(),
             ])
             ->filters([
                 //

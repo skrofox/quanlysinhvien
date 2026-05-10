@@ -14,30 +14,35 @@ class StudentForm
         return $schema
             ->components([
                 TextInput::make('student_code')
+                    ->label('Mã sinh viên')
                     ->required(),
                 TextInput::make('full_name')
+                    ->label('Họ tên')
                     ->required(),
-                DatePicker::make('birthday'),
+                DatePicker::make('birthday')
+                    ->label('Ngày sinh'),
                 Select::make('gender')
+                    ->label('Giới tính')
                     ->options(['Nam' => 'Nam', 'Nữ' => 'Nữ', 'Khác' => 'Khác'])
                     ->default('Khác')
                     ->required(),
                 Select::make('school_class_id')
+                    ->label('Lớp')
                     ->relationship('schoolClass', 'class_code')
                     ->required()
                     ->searchable()
                     ->preload(),
-                Select::make('user_id')
-                ->label('Mã sinh viên')
-                    ->relationship(
-                        name: 'user',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: fn($query) =>
-                        $query->role('sinh_vien')
-                    )
-                    ->getOptionLabelFromRecordUsing(fn($record) =>
-                        'ID: ' . $record->id . ' - ' . $record->name)
-                    ->required(),
+                // Select::make('user_id')
+
+                    // ->relationship(
+                    //     name: 'user',
+                    //     titleAttribute: 'name',
+                    //     modifyQueryUsing: fn($query) =>
+                    //     $query->role('sinh_vien')
+                    // )
+                    // ->getOptionLabelFromRecordUsing(fn($record) =>
+                    //     'ID: ' . $record->id . ' - ' . $record->name)
+                    // ->required(),
                 TextInput::make('CCCD')
                 ->label("CCCD/CMND")
                     ->required(),

@@ -25,19 +25,27 @@ class CourseRegistrationsTable
                     ->searchable(),
                 TextColumn::make('courseModule.subject.subject_name')
                     ->label('Môn học')
-                    ->formatStateUsing(fn ($record) => "{$record->courseModule->subject->subject_name} ({$record->courseModule->semester->semester_name})")
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('schedule.id')
-                    ->label('Lịch học')
-                    ->formatStateUsing(fn ($record) => $record->schedule ? "T2: {$record->schedule->monday}..." : 'N/A')
-                    ->toggleable(),
-                TextColumn::make('registration_date')
-                    ->label('Ngày đăng ký')
-                    ->dateTime('d/m/Y H:i')
+                TextColumn::make('courseModule.semester.semester_name')
+                    ->label('Học kỳ')
+                    ->badge()
+                    ->color(fn ($record): string => $record->courseModule->semester->status === 'ongoing' ? 'success' : 'gray')
                     ->sortable(),
+                // TextColumn::make('schedule.id')
+                //     ->label('Lịch học')
+                //     // ->formatStateUsing(fn ($record) => $record->schedule ? "T2: {$record->schedule->monday}..." : 'N/A')
+                //     ->toggleable(),
+                // TextColumn::make('registration_date')
+                //     ->label('Ngày đăng ký')
+                //     ->dateTime('d/m/Y H:i')
+                //     ->sortable(),
                 \Filament\Tables\Columns\IconColumn::make('is_registered')
-                    ->label('Trạng thái')
+                    ->label('Đã duyệt')
+                    ->boolean()
+                    ->sortable(),
+                \Filament\Tables\Columns\IconColumn::make('isComplete')
+                    ->label('Hoàn thành')
                     ->boolean()
                     ->sortable(),
                 TextColumn::make('created_at')
